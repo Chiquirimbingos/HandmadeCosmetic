@@ -1,6 +1,11 @@
 import { defineConfig } from 'vite'
 import { readFileSync, writeFileSync, readdirSync } from 'fs'
-import { resolve } from 'path'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+// __dirname no existe en módulos ES (este archivo usa import/export).
+// Lo reconstruimos manualmente a partir de import.meta.url.
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 // ─────────────────────────────────────────────────────────────
 // Plugin casero: incrusta el CSS generado directamente dentro
@@ -14,23 +19,37 @@ function inlineCssPlugin() {
     name: 'inline-css',
     apply: 'build',
     closeBundle() {
-      const outDir = resolve(__dirname, 'dist')
-      const assetsDir = resolve(outDir, 'assets')
-      const indexPath = resolve(outDir, 'index.html')
+      try {
+        const outDir = resolve(__dirname, 'dist')
+        const assetsDir = resolve(outDir, 'assets')
+        const indexPath = resolve(outDir, 'index.html')
 
-      const cssFile = readdirSync(assetsDir).find(f => f.endsWith('.css'))
-      if (!cssFile) return
+        const cssFile = readdirSync(assetsDir).find(f => f.endsWith('.css'))
+        if (!cssFile) {
+          console.warn('[inline-css] No se encontró archivo .css en dist/assets — se omite inlining.')
+          return
+        }
 
-      const cssContent = readFileSync(resolve(assetsDir, cssFile), 'utf-8')
-      let html = readFileSync(indexPath, 'utf-8')
+        const cssContent = readFileSync(resolve(assetsDir, cssFile), 'utf-8')
+        let html = readFileSync(indexPath, 'utf-8')
 
-      // Reemplaza el <link rel="stylesheet" ...> por un <style> inline
-      html = html.replace(
-        /<link rel="stylesheet"[^>]*href="[^"]*\.css"[^>]*>/,
-        `<style>${cssContent}</style>`
-      )
+        const before = html
+        html = html.replace(
+          /<link rel="stylesheet"[^>]*href="[^"]*\.css"[^>]*>/,
+          `<style>${cssContent}</style>`
+        )
 
-      writeFileSync(indexPath, html)
+        if (html === before) {
+          console.warn('[inline-css] No se encontró <link rel="stylesheet"> para reemplazar en index.html.')
+          return
+        }
+
+        writeFileSync(indexPath, html)
+        console.log(`[inline-css] CSS incrustado correctamente (${cssContent.length} bytes).`)
+      } catch (err) {
+        console.error('[inline-css] ERROR al incrustar el CSS:', err)
+        throw err // Falla el build explícitamente en vez de fallar en silencio
+      }
     },
   }
 }
