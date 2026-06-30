@@ -34,9 +34,20 @@ function inlineCssPlugin() {
         let html = readFileSync(indexPath, 'utf-8')
 
         const before = html
+
+        // 1. Eliminar el <link rel="stylesheet"> que apunta al CSS propio del build
         html = html.replace(
-          /<link rel="stylesheet"[^>]*href="[^"]*\.css"[^>]*>/,
-          `<style>${cssContent}</style>`
+          /<link rel="stylesheet"[^>]*href="\/assets\/[^"]*\.css"[^>]*>/,
+          ''
+        )
+
+        // 2. Insertar el <style> INMEDIATAMENTE después de <head>, antes que
+        //    cualquier <script>, para garantizar que el navegador resuelva
+        //    todo el CSS (incluyendo custom properties) antes del primer
+        //    pintado y antes de que el JS module empiece a ejecutar.
+        html = html.replace(
+          /<head>/,
+          `<head>\n  <style>${cssContent}</style>`
         )
 
         if (html === before) {
