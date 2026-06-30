@@ -1,2 +1,0 @@
-# HandmadeCosmetic
-inventory Handmade Cosmetic
