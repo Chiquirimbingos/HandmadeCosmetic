@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Inventario · Cosmética Artesanal</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --surface-alt: #f1f0ec;
+    --border: #e4e3de;
+    --text: #1c1c1a;
+    --text-muted: #7a7973;
+    --text-light: #a8a79f;
+    --accent: #2d6a4f;
+    --accent-bg: #eaf4ef;
+    --accent-text: #1b4332;
+    --warn: #92400e;
+    --warn-bg: #fef3c7;
+    --danger: #991b1b;
+    --danger-bg: #fee2e2;
+    --radius: 8px;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  [data-theme="dark"] {
+    --bg: #14161a;
+    --surface: #1d2025;
+    --surface-alt: #262930;
+    --border: #34383f;
+    --text: #ececea;
+    --text-muted: #9a9a95;
+    --text-light: #6f6f6a;
+    --accent: #52b788;
+    --accent-bg: #16332a;
+    --accent-text: #7ed7a8;
+    --warn: #fbbf24;
+    --warn-bg: #3a2e0f;
+    --danger: #f87171;
+    --danger-bg: #3a1717;
+  }
+  [data-theme="dark"] .badge-ok { background: #163a24; color: #86efac; }
+  [data-theme="dark"] .badge-type { background: #2f2154; color: #ddd6fe; }
+  [data-theme="dark"] .badge-ml { background: #17264a; color: #bfdbfe; }
+  [data-theme="dark"] .form-control:focus { box-shadow: 0 0 0 3px rgba(82,183,136,.2); }
+  [data-theme="dark"] .modal-bg { background: rgba(0,0,0,.6); }
+  [data-theme="dark"] .sidebar { box-shadow: none; }
+  body { transition: background-color .15s, color .15s; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+  a { color: inherit; text-decoration: none; }
+
+  /* Layout */
+  .app { display: grid; grid-template-columns: 1fr; min-height: 100vh; }
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 1.5rem 0;
+    position: fixed; top: 0; left: 0; width: 220px; height: 100vh;
+    display: flex; flex-direction: column; gap: 2px;
+    overflow-y: auto;
+  }
+  .sidebar-brand {
+    padding: 0 1.25rem 1rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: .5rem;
+  }
+  .sidebar-brand h1 { font-size: 15px; font-weight: 600; color: var(--text); }
+  .sidebar-brand p { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .sidebar-section { font-size: 10px; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: .08em; padding: .75rem 1.25rem .25rem; }
+  .nav-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: .45rem 1.25rem; font-size: 13.5px; color: var(--text-muted);
+    cursor: pointer; border-left: 2px solid transparent;
+    transition: all .12s; border-radius: 0;
+  }
+  .nav-item:hover { background: var(--surface-alt); color: var(--text); }
+  .nav-item.active { color: var(--accent-text); border-left-color: var(--accent); background: var(--accent-bg); font-weight: 500; }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; opacity: .7; }
+  .nav-item.active svg { opacity: 1; }
+  .main { margin-left: 220px; padding: 2rem; max-width: 960px; }
+
+  /* Theme toggle */
+  .theme-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: .5rem 1.25rem; }
+  .theme-toggle-row span { font-size: 12.5px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+  .theme-toggle-row svg { width: 15px; height: 15px; }
+  .theme-switch { position: relative; width: 38px; height: 21px; border-radius: 999px; background: var(--border); border: none; cursor: pointer; flex-shrink: 0; transition: background .15s; }
+  .theme-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 17px; height: 17px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+  [data-theme="dark"] .theme-switch { background: var(--accent); }
+  [data-theme="dark"] .theme-switch::after { transform: translateX(17px); }
+
+  /* Mobile top bar */
+  .mobile-topbar {
+    display: none; position: fixed; top: 0; left: 0; right: 0; height: 56px;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    align-items: center; gap: .85rem; padding: 0 1rem; z-index: 60;
+  }
+  .menu-btn { background: none; border: none; cursor: pointer; color: var(--text); display: flex; padding: 4px; }
+  .menu-btn svg { width: 22px; height: 22px; }
+  .mobile-topbar .sidebar-brand-mini { font-size: 14px; font-weight: 600; color: var(--text); }
+  .sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 59; }
+  .sidebar-backdrop.open { display: block; }
+
+  /* Pages */
+  .page { display: none; }
+  .page.active { display: block; }
+  .page-header { margin-bottom: 1.5rem; }
+  .page-header h2 { font-size: 20px; font-weight: 600; }
+  .page-header p { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+
+  /* KPIs */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .85rem 1rem; }
+  .kpi .label { font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
+  .kpi .value { font-size: 26px; font-weight: 600; color: var(--text); margin: 4px 0 2px; }
+  .kpi .sub { font-size: 11px; color: var(--text-light); }
+  .kpi.warn .value { color: var(--warn); }
+  .kpi.danger .value { color: var(--danger); }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1rem; overflow: hidden; }
+  .card-header { padding: .85rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .card-header h3 { font-size: 14px; font-weight: 600; }
+  .card-body { padding: 1rem 1.25rem; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; padding: .6rem 1rem; background: var(--surface-alt); border-bottom: 1px solid var(--border); }
+  td { padding: .6rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-alt); }
+
+  /* Badges */
+  .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px; }
+  .badge-ok { background: #dcfce7; color: #166534; }
+  .badge-low { background: var(--warn-bg); color: var(--warn); }
+  .badge-critical { background: var(--danger-bg); color: var(--danger); }
+  .badge-type { background: #ede9fe; color: #5b21b6; }
+  .badge-ml { background: #dbeafe; color: #1e40af; }
+
+  /* Progress bar */
+  .bar-wrap { width: 80px; height: 6px; background: var(--surface-alt); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width .3s; }
+  .bar-fill.green { background: #16a34a; }
+  .bar-fill.amber { background: #d97706; }
+  .bar-fill.red { background: #dc2626; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: .4rem .9rem; font-size: 13px; font-family: var(--font); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); cursor: pointer; transition: all .12s; font-weight: 500; }
+  .btn:hover { background: var(--surface-alt); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: #1b4332; }
+  .btn svg { width: 14px; height: 14px; }
+
+  /* Forms */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+  .form-control { font-size: 13px; font-family: var(--font); padding: .45rem .7rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); width: 100%; transition: border .12s; }
+  .form-control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px #dcfce7; }
+  .form-hint { font-size: 11px; color: var(--text-light); }
+  .form-section { margin-bottom: 1rem; }
+  .form-section-title { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .6rem; padding-bottom: .4rem; border-bottom: 1px solid var(--border); }
+
+  /* Simulator result */
+  .result-box { border-radius: var(--radius); padding: 1rem 1.25rem; margin-top: 1rem; }
+  .result-ok { background: var(--accent-bg); border: 1px solid #6ee7b7; }
+  .result-warn { background: var(--warn-bg); border: 1px solid #fcd34d; }
+  .result-danger { background: var(--danger-bg); border: 1px solid #fca5a5; }
+  .result-num { font-size: 32px; font-weight: 700; }
+  .result-ok .result-num { color: var(--accent-text); }
+  .result-warn .result-num { color: var(--warn); }
+  .result-danger .result-num { color: var(--danger); }
+  .result-label { font-size: 13px; margin-top: 2px; }
+  .result-ok .result-label { color: #065f46; }
+  .result-warn .result-label { color: var(--warn); }
+  .result-danger .result-label { color: var(--danger); }
+  .limiting-row { display: flex; align-items: center; gap: 6px; margin-top: .6rem; font-size: 12px; padding-top: .6rem; border-top: 1px solid rgba(0,0,0,.08); }
+
+  /* Ingredient breakdown */
+  .ing-list { display: flex; flex-direction: column; gap: 6px; margin-top: .85rem; }
+  .ing-row { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; padding: .5rem .75rem; background: var(--surface-alt); border-radius: 6px; }
+  .ing-row.limiting { border: 1px solid #fcd34d; background: var(--warn-bg); }
+  .ing-row.missing { border: 1px solid #fca5a5; background: var(--danger-bg); }
+  .ing-ok-text { color: #166534; font-weight: 600; }
+  .ing-bad-text { color: var(--danger); font-weight: 600; }
+
+  /* Recipe cards */
+  .recipe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .recipe-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; cursor: pointer; transition: all .12s; }
+  .recipe-card:hover { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+  .recipe-card h4 { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+  .recipe-card .meta { font-size: 12px; color: var(--text-muted); margin-bottom: .6rem; }
+  .recipe-card .max-units { font-size: 20px; font-weight: 700; color: var(--accent-text); }
+  .recipe-card .limiting-text { font-size: 11px; color: var(--warn); margin-top: 3px; }
+  .recipe-ing-list { font-size: 12px; color: var(--text-muted); margin-top: .5rem; }
+
+  /* Modal / drawer */
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; align-items: center; justify-content: center; }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--surface); border-radius: 12px; padding: 1.5rem; width: 520px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 1rem; }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+
+  /* Alerts */
+  .alert { display: flex; align-items: flex-start; gap: 10px; padding: .75rem 1rem; border-radius: var(--radius); margin-bottom: 1rem; font-size: 13px; }
+  .alert-warn { background: var(--warn-bg); color: var(--warn); border: 1px solid #fcd34d; }
+  .alert-info { background: var(--accent-bg); color: var(--accent-text); border: 1px solid #6ee7b7; }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+
+  /* Actions bar */
+  .actions-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; }
+  .tab { font-size: 13px; font-weight: 500; padding: .6rem 1rem; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .12s; }
+  .tab.active { color: var(--accent-text); border-bottom-color: var(--accent); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .app { grid-template-columns: 1fr; }
+    .mobile-topbar { display: flex; }
+    .sidebar {
+      transform: translateX(-100%); transition: transform .2s ease;
+      z-index: 70; box-shadow: 4px 0 24px rgba(0,0,0,.2);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; padding: 1rem; padding-top: 72px; }
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .recipe-grid { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Utils */
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .gap-2 { gap: .5rem; }
+  .gap-3 { gap: .75rem; }
+  .mt-1 { margin-top: .25rem; }
+  .mt-2 { margin-top: .5rem; }
+  .mt-3 { margin-top: .75rem; }
+  .text-muted { color: var(--text-muted); }
+  .text-sm { font-size: 12px; }
+  .fw-600 { font-weight: 600; }
+  .hidden { display: none !important; }
+  .w-full { width: 100%; }
+</style>
+</head>
+<body>
+<script>
+  // Aplicar tema guardado ANTES de pintar, para evitar parpadeo
+  (function() {
+    const saved = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = saved || (prefersDark ? 'dark' : 'light');
+    if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+  })();
+</script>
+
+<!-- ========== LOGIN SCREEN ========== -->
+<div id="loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(247,246,243,.85);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:12px">
+  <div style="width:32px;height:32px;border:3px solid #e4e3de;border-top-color:#2d6a4f;border-radius:50%;animation:spin .7s linear infinite"></div>
+  <span style="font-size:13px;color:#7a7973">Cargando datos...</span>
+</div>
+<div id="auth-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2.5rem 2rem;width:360px;max-width:95vw;box-shadow:0 4px 24px rgba(0,0,0,.06)">
+    <div style="text-align:center;margin-bottom:2rem">
+      <div style="font-size:2rem;margin-bottom:.5rem">🌿</div>
+      <h1 style="font-size:18px;font-weight:600">Cosmética Artesanal</h1>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:3px">Sistema de inventario y producción</p>
+    </div>
+    <div id="auth-error" style="background:var(--danger-bg);color:var(--danger);border:1px solid #fca5a5;border-radius:var(--radius);padding:.6rem .9rem;font-size:12.5px;margin-bottom:1rem;display:none"></div>
+    <div class="form-group" style="margin-bottom:.85rem">
+      <label>Correo electrónico</label>
+      <input type="email" id="login-email" class="form-control" placeholder="tu@email.com" autocomplete="email">
+    </div>
+    <div class="form-group" style="margin-bottom:1.25rem">
+      <label>Contraseña</label>
+      <input type="password" id="login-password" class="form-control" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button id="login-btn" class="btn btn-primary w-full" style="justify-content:center">Ingresar</button>
+  </div>
+</div>
+
+<!-- ========== APP (oculta hasta autenticar) ========== -->
+<div id="app-root" style="display:none">
+
+<!-- TOPBAR MÓVIL -->
+<div class="mobile-topbar">
+  <button class="menu-btn" onclick="toggleMobileMenu()" aria-label="Abrir menú">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <span class="sidebar-brand-mini">🌿 Cosmética Artesanal</span>
+</div>
+<div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleMobileMenu()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <h1>🌿 Cosmética Artesanal</h1>
+    <p>Sistema de inventario y producción</p>
+  </div>
+  <div class="sidebar-section">General</div>
+  <div class="nav-item active" onclick="nav('dashboard', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    Panel
+  </div>
+  <div class="sidebar-section">Módulos</div>
+  <div class="nav-item" onclick="nav('stock', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+    Inventario
+  </div>
+  <div class="nav-item" onclick="nav('recipes', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+    Recetas
+  </div>
+  <div class="nav-item" onclick="nav('simulate', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h4v4H7zM13 8l4 4M17 8l-4 4"/></svg>
+    Simulador
+  </div>
+  <div class="nav-item" onclick="nav('ingredientes', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    Ingredientes
+  </div>
+  <div class="theme-toggle-row">
+    <span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      Modo oscuro
+    </span>
+    <button class="theme-switch" id="theme-switch" onclick="toggleTheme()" aria-label="Cambiar tema"></button>
+  </div>
+  <div style="margin-top:auto;padding:1rem 1.25rem;border-top:1px solid var(--border)">
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:.6rem;word-break:break-all">Sesión iniciada como<br><span id="user-email-label" style="font-weight:500;color:var(--text)">—</span></div>
+    <button id="logout-btn" class="btn w-full" style="justify-content:center;font-size:12px">Cerrar sesión</button>
+  </div>
+</aside>
+
+<div class="app">
+  <main class="main">
+
+    <!-- ========== DASHBOARD ========== -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h2>Panel de producción</h2>
+        <p>Resumen general del estado actual de tu taller</p>
+      </div>
+      <div class="kpi-grid" id="kpi-grid"></div>
+      <div id="alert-zone"></div>
+      <div class="card">
+        <div class="card-header"><h3>Capacidad de producción por receta</h3></div>
+        <table>
+          <thead><tr><th>Receta</th><th>Tipo</th><th>Máx. unidades</th><th>Ingrediente limitante</th><th>Estado</th></tr></thead>
+          <tbody id="dashboard-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ========== STOCK ========== -->
+    <div class="page" id="page-stock">
+      <div class="page-header">
+        <h2>Inventario de ingredientes</h2>
+        <p>Stock actual en gramos (g) o mililitros (ml)</p>
+      </div>
+      <div class="actions-bar">
+        <div class="tabs">
+          <div class="tab active" onclick="filterStock('all', this)">Todos</div>
+          <div class="tab" onclick="filterStock('Aceites', this)">Aceites</div>
+          <div class="tab" onclick="filterStock('Álcalis', this)">Álcalis</div>
+          <div class="tab" onclick="filterStock('Aditivos', this)">Aditivos</div>
+          <div class="tab" onclick="filterStock('Fragancias', this)">Fragancias</div>
+          <div class="tab" onclick="filterStock('Exfoliantes', this)">Exfoliantes</div>
+        </div>
+        <button class="btn btn-primary" onclick="openAddIngredientModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Agregar ingrediente
+        </button>
+      </div>
+      <div class="card" style="padding:0">
+        <table>
+          <thead><tr><th>Ingrediente</th><th>Categoría</th><th>Stock actual</th><th>Mínimo</th><th>Estado</th><th>Nivel</th><th>Acciones</th></tr></thead>
+          <tbody id="stock-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ========== RECETAS ========== -->
+    <div class="page" id="page-recipes">
+      <div class="page-header">
+        <h2>Recetas registradas</h2>
+        <p>Fórmulas para cada producto final. Haz clic en una receta para simular.</p>
+      </div>
+      <div class="actions-bar">
+        <div style="display:flex;align-items:center;gap:10px">
+          <label style="font-size:12px;font-weight:600;color:var(--text-muted)">Filtrar por tipo:</label>
+          <select class="form-control" id="recipe-type-filter" onchange="buildRecipes()" style="width:auto;min-width:160px">
+            <option value="">Todos los tipos</option>
+            <option>Jabón sólido</option>
+            <option>Jabón líquido</option>
+            <option>Champú sólido</option>
+            <option>Crema</option>
+            <option>Loción</option>
+            <option>Otro</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="openAddRecipeModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nueva receta
+        </button>
+      </div>
+      <div class="recipe-grid" id="recipes-grid"></div>
+    </div>
+
+    <!-- ========== GESTIÓN DE INGREDIENTES ========== -->
+    <div class="page" id="page-ingredientes">
+      <div class="page-header">
+        <h2>Gestión de ingredientes</h2>
+        <p>Agrega, edita o elimina ingredientes del sistema.</p>
+      </div>
+      <div class="actions-bar" style="flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="position:relative">
+            <svg style="position:absolute;left:9px;top:50%;transform:translateY(-50%);opacity:.45;pointer-events:none"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="ing-search" class="form-control"
+              placeholder="Buscar ingrediente..."
+              style="padding-left:30px;width:220px"
+              oninput="buildIngMgmtTable()">
+          </div>
+          <select class="form-control" id="ing-cat-filter" style="width:160px" onchange="buildIngMgmtTable()">
+            <option value="">Todas las categorías</option>
+            <option>Aceites</option><option>Álcalis</option><option>Líquidos</option>
+            <option>Fragancias</option><option>Colorantes</option>
+            <option>Aditivos</option><option>Exfoliantes</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="openIngModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nuevo ingrediente
+        </button>
+      </div>
+      <div class="card" style="padding:0">
+        <table>
+          <thead><tr><th>Ingrediente</th><th>Categoría</th><th>Unidad</th><th>Stock</th><th>Mínimo</th><th>Acciones</th></tr></thead>
+          <tbody id="ing-mgmt-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ========== SIMULADOR ========== -->
+    <div class="page" id="page-simulate">
+      <div class="page-header">
+        <h2>Simulador de producción</h2>
+        <p>Calcula cuánto puedes fabricar según el stock actual, o valida si tienes stock para una cantidad específica.</p>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Configurar simulación</h3></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Receta</label>
+              <select class="form-control" id="sim-recipe" onchange="simulate()">
+                <option value="">Selecciona una receta...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Unidades a fabricar</label>
+              <input type="number" class="form-control" id="sim-units" min="1" placeholder="Vacío = calcular máximo" oninput="simulate()">
+              <span class="form-hint">Déjalo vacío para ver el máximo posible</span>
+            </div>
+          </div>
+          <div id="sim-result"></div>
+        </div>
+      </div>
+      <div class="card hidden" id="breakdown-card">
+        <div class="card-header"><h3>Desglose por ingrediente</h3></div>
+        <div class="card-body">
+          <div class="ing-list" id="ing-breakdown"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ========== MODAL: Agregar/Editar Ingrediente (Gestión) ========== -->
+<div class="modal-bg" id="modal-ing-mgmt">
+  <div class="modal">
+    <h3 id="modal-ing-mgmt-title">Nuevo ingrediente</h3>
+    <input type="hidden" id="ing-mgmt-id">
+    <div class="form-section">
+      <div class="form-grid">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Nombre del ingrediente</label>
+          <input type="text" class="form-control" id="ing-mgmt-name" placeholder="Ej. Aceite de argán">
+        </div>
+        <div class="form-group">
+          <label>Categoría</label>
+          <select class="form-control" id="ing-mgmt-cat">
+            <option value="Aceites">Aceites</option>
+            <option value="Álcalis">Álcalis</option>
+            <option value="Líquidos">Líquidos</option>
+            <option value="Fragancias">Fragancias</option>
+            <option value="Colorantes">Colorantes</option>
+            <option value="Aditivos">Aditivos</option>
+            <option value="Exfoliantes">Exfoliantes</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Unidad</label>
+          <select class="form-control" id="ing-mgmt-unit">
+            <option value="g">g (gramos)</option>
+            <option value="ml">ml (mililitros)</option>
+            <option value="u">u (unidades)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Stock actual</label>
+          <input type="number" class="form-control" id="ing-mgmt-stock" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label>Stock mínimo (alerta)</label>
+          <input type="number" class="form-control" id="ing-mgmt-min" placeholder="100" min="0">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-ing-mgmt')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveIngMgmt()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: Agregar Ingrediente ========== -->
+<div class="modal-bg" id="modal-ingredient">
+  <div class="modal">
+    <h3>Agregar ingrediente</h3>
+    <div class="form-section">
+      <div class="form-grid">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Nombre del ingrediente</label>
+          <input type="text" class="form-control" id="ing-name" placeholder="Ej. Aceite de argán">
+        </div>
+        <div class="form-group">
+          <label>Categoría</label>
+          <select class="form-control" id="ing-cat">
+            <option>Aceites</option><option>Álcalis</option><option>Líquidos</option>
+            <option>Fragancias</option><option>Colorantes</option><option>Aditivos</option><option>Exfoliantes</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Unidad</label>
+          <select class="form-control" id="ing-unit">
+            <option value="g">g (gramos)</option>
+            <option value="ml">ml (mililitros)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Stock actual</label>
+          <input type="number" class="form-control" id="ing-stock" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label>Stock mínimo (alerta)</label>
+          <input type="number" class="form-control" id="ing-min" placeholder="100" min="0">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-ingredient')">Cancelar</button>
+      <button class="btn btn-primary" onclick="addIngredient()">Guardar ingrediente</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: Nueva Receta ========== -->
+<div class="modal-bg" id="modal-recipe">
+  <div class="modal">
+    <h3>Nueva receta</h3>
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Nombre de la receta</label>
+        <input type="text" class="form-control" id="rec-name" placeholder="Ej. Jabón de romero y arcilla">
+      </div>
+      <div class="form-group">
+        <label>Tipo de producto</label>
+        <select class="form-control" id="rec-type">
+          <option>Jabón sólido</option><option>Jabón líquido</option>
+          <option>Crema</option><option>Loción</option><option>Champú sólido</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Rendimiento por lote</label>
+        <input type="number" class="form-control" id="rec-yield" placeholder="1" min="1">
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="form-section-title" style="margin-top:.5rem">Ingredientes (cantidad por unidad producida)</div>
+    <div id="recipe-ings-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:.75rem"></div>
+    <button class="btn" onclick="addRecipeIngRow()" style="width:100%;justify-content:center">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Agregar ingrediente
+    </button>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-recipe')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveRecipe()">Guardar receta</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /#app-root -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+// ============================================================
+// SUPABASE CONNECTION
+// ============================================================
+const SUPABASE_URL = 'https://lnhohyomhyiuasuuxpjz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxuaG9oeW9taHlpdWFzdXV4cGp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjU1MTYsImV4cCI6MjA5ODM0MTUxNn0.B6rukFjiJ4Oj96KDxnd2HcTQRsbWx8moCGjSfcMH350';
+const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ============================================================
+// DATA — cargado desde Supabase
+// ============================================================
+let ingredients = [];
+let recipes = [];
+let categorias = [];
+
+function buildCatOptions() {
+  if (!categorias || categorias.length === 0) return;
+  // Usar nombre como value (no el id numérico) para que funcione
+  // tanto si las categorías cargan de Supabase como si no.
+  const opts = categorias.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
+  ['ing-mgmt-cat', 'ing-cat', 'ing-cat-filter'].forEach(elId => {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const prev = el.value;
+    if (elId === 'ing-cat-filter') {
+      el.innerHTML = '<option value="">Todas las categorías</option>' + opts;
+    } else {
+      el.innerHTML = opts;
+    }
+    if (prev) el.value = prev;
+  });
+}
+
+function mapIngredient(row) {
+  return {
+    id:    row.id,
+    name:  row.nombre,
+    cat:   row.categoria  || 'Sin categoría',
+    stock: parseFloat(row.stock)        || 0,
+    unit:  row.unidad     || 'g',
+    min:   parseFloat(row.stock_minimo) || 0,
+  };
+}
+
+function mapRecipe(row) {
+  return {
+    id:    row.id,
+    name:  row.nombre,
+    type:  row.tipo,
+    yield: row.rendimiento || 1,
+    yieldUnit: row.unidad_salida || 'unidad',
+    ingredients: (row.receta_ingredientes || []).map(ri => ({
+      id:  ri.ingrediente_id,
+      qty: parseFloat(ri.cantidad) || 0,
+    })),
+  };
+}
+
+async function loadData() {
+  document.getElementById('loading-overlay').style.display = 'flex';
+  try {
+    const { data: ings, error: e1 } = await supa
+      .from('v_inventario').select('*').order('nombre');
+    if (e1) throw e1;
+    ingredients = ings.map(mapIngredient);
+
+    const { data: recs, error: e2 } = await supa
+      .from('recetas')
+      .select('*, receta_ingredientes(ingrediente_id, cantidad)')
+      .order('nombre');
+    if (e2) throw e2;
+    recipes = recs.map(mapRecipe);
+
+  } catch(err) {
+    alert('Error al cargar datos: ' + err.message);
+  }
+  document.getElementById('loading-overlay').style.display = 'none';
+}
+
+
+// ============================================================
+// CORE ALGORITHM
+// ============================================================
+function calcMax(recipe) {
+  let maxUnits = Infinity;
+  let limitingIng = null;
+  for (const ri of recipe.ingredients) {
+    const ing = ingredients.find(i => i.id === ri.id);
+    if (!ing) continue;
+    const possible = Math.floor(ing.stock / ri.qty);
+    if (possible < maxUnits) { maxUnits = possible; limitingIng = ing; }
+  }
+  return { maxUnits: maxUnits === Infinity ? 0 : maxUnits, limitingIng };
+}
+
+function validateProduction(recipe, units) {
+  const result = { possible: true, items: [] };
+  for (const ri of recipe.ingredients) {
+    const ing = ingredients.find(i => i.id === ri.id);
+    if (!ing) continue;
+    const needed = ri.qty * units;
+    const ok = ing.stock >= needed;
+    if (!ok) result.possible = false;
+    result.items.push({ ing, needed, available: ing.stock, ok, deficit: ok ? 0 : needed - ing.stock });
+  }
+  return result;
+}
+
+// ============================================================
+// STATUS HELPERS
+// ============================================================
+function getStatus(ing) {
+  const pct = ing.stock / ing.min;
+  if (pct <= 0) return { label: 'Sin stock', cls: 'critical' };
+  if (pct < 0.5) return { label: 'Crítico', cls: 'critical' };
+  if (pct < 1) return { label: 'Bajo', cls: 'low' };
+  return { label: 'OK', cls: 'ok' };
+}
+
+function uid() { return Math.random().toString(36).slice(2, 9); }
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function buildDashboard() {
+  const critical = ingredients.filter(i => i.stock < i.min * 0.5).length;
+  const low = ingredients.filter(i => i.stock >= i.min * 0.5 && i.stock < i.min).length;
+
+  document.getElementById('kpi-grid').innerHTML = `
+    <div class="kpi"><div class="label">Ingredientes</div><div class="value">${ingredients.length}</div><div class="sub">en inventario</div></div>
+    <div class="kpi"><div class="label">Recetas</div><div class="value">${recipes.length}</div><div class="sub">registradas</div></div>
+    <div class="kpi ${low > 0 ? 'warn' : ''}"><div class="label">Stock bajo</div><div class="value">${low}</div><div class="sub">por reponer</div></div>
+    <div class="kpi ${critical > 0 ? 'danger' : ''}"><div class="label">Stock crítico</div><div class="value">${critical}</div><div class="sub">urgente</div></div>
+  `;
+
+  const alerts = ingredients.filter(i => i.stock < i.min);
+  const alertZone = document.getElementById('alert-zone');
+  if (alerts.length > 0) {
+    alertZone.innerHTML = `<div class="alert alert-warn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span><strong>${alerts.length} ingredientes</strong> están por debajo del nivel mínimo: ${alerts.map(i => i.name).join(', ')}.</span>
+    </div>`;
+  } else { alertZone.innerHTML = ''; }
+
+  document.getElementById('dashboard-table').innerHTML = recipes.map(r => {
+    const { maxUnits, limitingIng } = calcMax(r);
+    const cls = maxUnits > 5 ? 'badge-ok' : maxUnits > 0 ? 'badge-low' : 'badge-critical';
+    return `<tr>
+      <td><strong>${r.name}</strong></td>
+      <td><span class="badge badge-type">${r.type}</span></td>
+      <td style="font-size:16px;font-weight:700;color:${maxUnits > 5 ? '#166534' : maxUnits > 0 ? '#92400e' : '#991b1b'}">${maxUnits}</td>
+      <td class="text-muted">${limitingIng ? limitingIng.name : '—'}</td>
+      <td><span class="badge ${cls}">${maxUnits > 5 ? 'OK' : maxUnits > 0 ? 'Limitado' : 'Sin stock'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// GESTIÓN DE INGREDIENTES
+// ============================================================
+function buildIngMgmtTable() {
+  const search  = (document.getElementById('ing-search')?.value  || '').toLowerCase().trim();
+  const catFilt = (document.getElementById('ing-cat-filter')?.value || '').toLowerCase().trim();
+
+  const filtered = ingredients
+    .filter(ing => {
+      const matchName = !search  || ing.name.toLowerCase().includes(search);
+      const matchCat  = !catFilt || ing.cat.toLowerCase()  === catFilt;
+      return matchName && matchCat;
+    })
+    .sort((a,b) => a.name.localeCompare(b.name, 'es'));
+
+  if (filtered.length === 0) {
+    document.getElementById('ing-mgmt-table').innerHTML =
+      '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted)">Sin resultados para esta búsqueda.</td></tr>';
+    return;
+  }
+
+  document.getElementById('ing-mgmt-table').innerHTML = filtered.map(ing => `<tr>
+    <td style="font-weight:500">${ing.name}</td>
+    <td><span class="badge badge-ml">${ing.cat}</span></td>
+    <td>${ing.unit}</td>
+    <td>${ing.stock.toLocaleString('es-CL')} ${ing.unit}</td>
+    <td>${ing.min.toLocaleString('es-CL')} ${ing.unit}</td>
+    <td style="display:flex;gap:6px">
+      <button class="btn" style="padding:.2rem .6rem;font-size:12px" onclick="openIngModal('${ing.id}')">Editar</button>
+      <button class="btn" style="padding:.2rem .6rem;font-size:12px;background:var(--danger-bg);color:var(--danger);border-color:#fca5a5" onclick="deleteIng('${ing.id}','${ing.name.replace(/'/g,"\'")}')">Eliminar</button>
+    </td>
+  </tr>`).join('');
+}
+
+async function openIngModal(id) {
+  const titleEl = document.getElementById('modal-ing-mgmt-title');
+  const idEl    = document.getElementById('ing-mgmt-id');
+  const catSel  = document.getElementById('ing-mgmt-cat');
+
+  // Siempre cargar categorías frescas desde Supabase al abrir el modal
+  const { data: catsData, error: catsErr } = await supa
+    .from('categorias').select('*').order('nombre');
+  if (catsErr || !catsData || catsData.length === 0) {
+    alert('No se pudo conectar a Supabase para cargar las categorías. Verifica tu conexión a internet.');
+    return;
+  }
+  categorias = catsData;
+  // Llenar el select con id numérico como value
+  catSel.innerHTML = categorias.map(c =>
+    `<option value="${c.id}">${c.nombre}</option>`
+  ).join('');
+
+  if (id) {
+    const ing = ingredients.find(i => i.id === id);
+    if (!ing) return;
+    titleEl.textContent = 'Editar ingrediente';
+    idEl.value = id;
+    document.getElementById('ing-mgmt-name').value  = ing.name;
+    document.getElementById('ing-mgmt-unit').value  = ing.unit;
+    document.getElementById('ing-mgmt-stock').value = ing.stock;
+    document.getElementById('ing-mgmt-min').value   = ing.min;
+    // Seleccionar la categoría correcta por nombre
+    const catMatch = categorias.find(c => c.nombre === ing.cat);
+    if (catMatch) catSel.value = catMatch.id;
+  } else {
+    titleEl.textContent = 'Nuevo ingrediente';
+    idEl.value = '';
+    ['ing-mgmt-name','ing-mgmt-stock','ing-mgmt-min'].forEach(x =>
+      document.getElementById(x).value = '');
+    document.getElementById('ing-mgmt-unit').value = 'g';
+    if (categorias.length > 0) catSel.value = categorias[0].id;
+  }
+  document.getElementById('modal-ing-mgmt').classList.add('open');
+}
+
+async function saveIngMgmt() {
+  const id           = document.getElementById('ing-mgmt-id').value;
+  const nombre       = document.getElementById('ing-mgmt-name').value.trim();
+  // El select tiene el id numérico como value (fue cargado en openIngModal desde Supabase)
+  const categoria_id = parseInt(document.getElementById('ing-mgmt-cat').value) || null;
+  const unidad       = document.getElementById('ing-mgmt-unit').value;
+  const stock        = parseFloat(document.getElementById('ing-mgmt-stock').value) || 0;
+  const stock_minimo = parseFloat(document.getElementById('ing-mgmt-min').value)   || 0;
+
+  if (!nombre)       { alert('Ingresa un nombre.'); return; }
+  if (!categoria_id) { alert('Categoría no válida. Cierra y abre el formulario de nuevo.'); return; }
+
+  if (id) {
+    // EDITAR
+    const { error } = await supa.from('ingredientes')
+      .update({ nombre, categoria_id, unidad, stock, stock_minimo })
+      .eq('id', id);
+    if (error) { alert('Error al editar: ' + error.message); return; }
+  } else {
+    // CREAR
+    const { error } = await supa.from('ingredientes')
+      .insert([{ nombre, categoria_id, unidad, stock, stock_minimo }]);
+    if (error) { alert('Error al crear: ' + error.message); return; }
+  }
+
+  closeModal('modal-ing-mgmt');
+  await loadData();
+  buildIngMgmtTable();
+  buildStockTable();
+  buildDashboard();
+}
+
+async function deleteIng(id, nombre) {
+  if (!confirm(`¿Eliminar "${nombre}"? Esta acción no se puede deshacer.`)) return;
+  const { error } = await supa.from('ingredientes').delete().eq('id', id);
+  if (error) { alert('Error al eliminar: ' + error.message); return; }
+  await loadData();
+  buildIngMgmtTable();
+  buildStockTable();
+  buildDashboard();
+}
+
+// ============================================================
+// STOCK TABLE
+// ============================================================
+let currentFilter = 'all';
+function buildStockTable() {
+  const data = currentFilter === 'all' ? ingredients : ingredients.filter(i => i.cat === currentFilter);
+  document.getElementById('stock-table').innerHTML = data.map(ing => {
+    const st = getStatus(ing);
+    const pct = Math.min(100, Math.round(ing.stock / ing.min * 100));
+    const barCls = st.cls === 'critical' ? 'red' : st.cls === 'low' ? 'amber' : 'green';
+    return `<tr>
+      <td style="font-weight:500">${ing.name}</td>
+      <td><span class="badge badge-ml">${ing.cat}</span></td>
+      <td>${ing.stock.toLocaleString('es-CL')} ${ing.unit}</td>
+      <td class="text-muted">${ing.min.toLocaleString('es-CL')} ${ing.unit}</td>
+      <td><span class="badge badge-${st.cls}">${st.label}</span></td>
+      <td><div class="bar-wrap"><div class="bar-fill ${barCls}" style="width:${pct}%"></div></div></td>
+      <td><button class="btn" style="padding:.25rem .5rem;font-size:12px" onclick="adjustStock('${ing.id}')">Ajustar</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterStock(cat, el) {
+  currentFilter = cat;
+  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  buildStockTable();
+}
+
+async function adjustStock(id) {
+  const ing = ingredients.find(i => i.id === id);
+  const val = prompt(`Nuevo stock para "${ing.name}" (${ing.unit}):`, ing.stock);
+  if (val === null) return;
+  const n = parseFloat(val);
+  if (isNaN(n) || n < 0) { alert('Valor inválido'); return; }
+
+  // Guardar en Supabase
+  const { error } = await supa
+    .from('ingredientes')
+    .update({ stock: n })
+    .eq('id', id);
+
+  if (error) {
+    alert('Error al guardar en Supabase: ' + error.message);
+    return;
+  }
+
+  // Actualizar en memoria y refrescar pantalla
+  ing.stock = n;
+  buildStockTable();
+  buildDashboard();
+}
+
+// ============================================================
+// RECIPES
+// ============================================================
+function buildRecipes() {
+  const tipoFiltro = document.getElementById('recipe-type-filter')?.value || '';
+  const lista = tipoFiltro ? recipes.filter(r => r.type === tipoFiltro) : recipes;
+  document.getElementById('recipes-grid').innerHTML = lista.length === 0
+    ? '<p style="color:var(--text-muted);font-size:13px;padding:1rem 0">Sin recetas para este tipo.</p>'
+    : lista.map(r => {
+    const { maxUnits, limitingIng } = calcMax(r);
+    const ingNames = r.ingredients.map(ri => {
+      const ing = ingredients.find(i => i.id === ri.id);
+      return ing ? `${ing.name} (${ri.qty}${ing.unit})` : '';
+    }).join(' · ');
+    return `<div class="recipe-card" onclick="goSimulate('${r.id}')">
+      <div class="flex items-center gap-2" style="justify-content:space-between;margin-bottom:4px">
+        <span class="badge badge-type">${r.type}</span>
+        <span class="text-sm text-muted">${r.ingredients.length} ingredientes</span>
+      </div>
+      <h4>${r.name}</h4>
+      <div class="meta">Rinde ${r.yield} ${r.yieldUnit} por lote</div>
+      <div class="max-units">${maxUnits} <span style="font-size:14px;font-weight:400;color:var(--text-muted)">unidades posibles</span></div>
+      ${limitingIng ? `<div class="limiting-text">⚠ Limitante: ${limitingIng.name} (${limitingIng.stock} ${limitingIng.unit} disponibles)</div>` : ''}
+      <div class="recipe-ing-list mt-2">${ingNames}</div>
+    </div>`;
+  }).join('');
+
+  // populate simulator select
+  const sel = document.getElementById('sim-recipe');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Selecciona una receta...</option>';
+  recipes.forEach(r => { sel.innerHTML += `<option value="${r.id}">${r.name}</option>`; });
+  if (current) sel.value = current;
+}
+
+function goSimulate(recipeId) {
+  document.getElementById('sim-recipe').value = recipeId;
+  nav('simulate', document.querySelector('[onclick*="simulate"]'));
+  simulate();
+}
+
+// ============================================================
+// SIMULATOR
+// ============================================================
+function simulate() {
+  const recipeId = document.getElementById('sim-recipe').value;
+  const unitsInput = parseInt(document.getElementById('sim-units').value) || 0;
+  const resultEl = document.getElementById('sim-result');
+  const breakdownCard = document.getElementById('breakdown-card');
+  const breakdownEl = document.getElementById('ing-breakdown');
+
+  if (!recipeId) { resultEl.innerHTML = ''; breakdownCard.classList.add('hidden'); return; }
+
+  const recipe = recipes.find(r => r.id === recipeId);
+  const { maxUnits, limitingIng } = calcMax(recipe);
+
+  if (unitsInput > 0) {
+    const v = validateProduction(recipe, unitsInput);
+    const cls = v.possible ? 'ok' : 'danger';
+    const icon = v.possible ? '✓' : '✗';
+    resultEl.innerHTML = `<div class="result-box result-${cls}">
+      <div class="result-num">${icon} ${v.possible ? 'Producción posible' : 'Sin stock suficiente'}</div>
+      <div class="result-label">${v.possible
+        ? `Puedes fabricar ${unitsInput} unidades. Capacidad restante: ${maxUnits - unitsInput} unidades.`
+        : `Solo puedes fabricar ${maxUnits} unidades. Revisa los ingredientes marcados en rojo.`
+      }</div>
+    </div>`;
+    breakdownEl.innerHTML = v.items.map(it => {
+      const cls = it.ok ? '' : 'missing';
+      return `<div class="ing-row ${cls}">
+        <span>${it.ing.name}</span>
+        <span>Necesitas: <strong>${it.needed} ${it.ing.unit}</strong> &nbsp;·&nbsp; 
+        Stock: <span class="${it.ok ? 'ing-ok-text' : 'ing-bad-text'}">${it.available} ${it.ing.unit}</span>
+        ${!it.ok ? ` &nbsp;·&nbsp; <span class="ing-bad-text">Falta: ${it.deficit.toFixed(1)} ${it.ing.unit}</span>` : ''}
+        </span>
+      </div>`;
+    }).join('');
+  } else {
+    const cls = maxUnits > 5 ? 'ok' : maxUnits > 0 ? 'warn' : 'danger';
+    resultEl.innerHTML = `<div class="result-box result-${cls}">
+      <div class="result-num">${maxUnits} ${maxUnits === 1 ? 'unidad' : 'unidades'}</div>
+      <div class="result-label">Máximo producible con el stock actual</div>
+      ${limitingIng ? `<div class="limiting-row">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        Ingrediente limitante: <strong>${limitingIng.name}</strong> &mdash; ${limitingIng.stock} ${limitingIng.unit} disponibles
+        (${Math.round(limitingIng.stock / limitingIng.min * 100)}% del mínimo recomendado)
+      </div>` : ''}
+    </div>`;
+    breakdownEl.innerHTML = recipe.ingredients.map(ri => {
+      const ing = ingredients.find(i => i.id === ri.id);
+      if (!ing) return '';
+      const possible = Math.floor(ing.stock / ri.qty);
+      const isLimit = limitingIng?.id === ing.id;
+      return `<div class="ing-row ${isLimit ? 'limiting' : ''}">
+        <span ${isLimit ? 'style="font-weight:600"' : ''}>${ing.name}${isLimit ? ' ⚠' : ''}</span>
+        <span>Por unidad: ${ri.qty} ${ing.unit} &nbsp;·&nbsp; Permite: <strong>${possible} u.</strong> &nbsp;·&nbsp; Stock: ${ing.stock} ${ing.unit}</span>
+      </div>`;
+    }).join('');
+  }
+
+  breakdownCard.classList.remove('hidden');
+}
+
+// ============================================================
+// ADD INGREDIENT MODAL
+// ============================================================
+function openAddIngredientModal() {
+  ['ing-name','ing-stock','ing-min'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('modal-ingredient').classList.add('open');
+}
+
+async function addIngredient() {
+  const nombre = document.getElementById('ing-name').value.trim();
+  const unidad = document.getElementById('ing-unit').value;
+  const stock = parseFloat(document.getElementById('ing-stock').value) || 0;
+  const stock_minimo = parseFloat(document.getElementById('ing-min').value) || 100;
+  if (!nombre) { alert('Ingresa un nombre para el ingrediente.'); return; }
+
+  // El select ya tiene el id como value
+  const catNombre2 = document.getElementById('ing-cat').value;
+  if (categorias.length === 0) {
+    const { data } = await supa.from('categorias').select('*').order('nombre');
+    if (data) { categorias = data; buildCatOptions(); }
+  }
+  const catObj2      = categorias.find(c => c.nombre === catNombre2);
+  const categoria_id = catObj2?.id ?? null;
+  if (!categoria_id) { alert('No se pudo resolver la categoría. Revisa tu conexión.'); return; }
+  const { error } = await supa.from('ingredientes')
+    .insert([{ nombre, categoria_id, unidad, stock, stock_minimo }]);
+  if (error) { alert('Error al guardar: ' + error.message); return; }
+
+  closeModal('modal-ingredient');
+  await loadData();
+  buildStockTable();
+  buildDashboard();
+  buildRecipes();
+}
+
+// ============================================================
+// ADD RECIPE MODAL
+// ============================================================
+let recipeIngRows = [];
+
+function openAddRecipeModal() {
+  document.getElementById('rec-name').value = '';
+  document.getElementById('rec-yield').value = '';
+  recipeIngRows = [];
+  renderRecipeIngRows();
+  document.getElementById('modal-recipe').classList.add('open');
+}
+
+function addRecipeIngRow() {
+  recipeIngRows.push({ rowId: uid(), ingId: ingredients[0]?.id || '', qty: 1, unit: 'g' });
+  renderRecipeIngRows();
+}
+
+function renderRecipeIngRows() {
+  const container = document.getElementById('recipe-ings-list');
+  container.innerHTML = recipeIngRows.map((row, idx) => `
+    <div style="display:grid;grid-template-columns:1fr 90px 80px 36px;gap:6px;align-items:center">
+      <select class="form-control" onchange="recipeIngRows[${idx}].ingId=this.value">
+        ${ingredients.map(i => `<option value="${i.id}" ${i.id === row.ingId ? 'selected' : ''}>${i.name}</option>`).join('')}
+      </select>
+      <input type="number" class="form-control" style="width:90px"
+        placeholder="1" min="0" step="any"
+        value="${row.qty !== undefined && row.qty !== 0 ? row.qty : 1}"
+        oninput="recipeIngRows[${idx}].qty=parseFloat(this.value)||0">
+      <select class="form-control" onchange="recipeIngRows[${idx}].unit=this.value">
+        <option value="g"  ${(row.unit||'g')==='g'  ? 'selected' : ''}>g</option>
+        <option value="ml" ${(row.unit||'g')==='ml' ? 'selected' : ''}>ml</option>
+        <option value="u"  ${(row.unit||'g')==='u'  ? 'selected' : ''}>u</option>
+      </select>
+      <button class="btn" style="padding:.25rem .4rem" onclick="recipeIngRows.splice(${idx},1);renderRecipeIngRows()">✕</button>
+    </div>
+  `).join('');
+}
+
+async function saveRecipe() {
+  const nombre = document.getElementById('rec-name').value.trim();
+  const tipo = document.getElementById('rec-type').value;
+  const rendimiento = parseInt(document.getElementById('rec-yield').value) || 1;
+  if (!nombre) { alert('Ingresa un nombre para la receta.'); return; }
+  if (recipeIngRows.length === 0) { alert('Agrega al menos un ingrediente.'); return; }
+
+  // 1. Insertar receta
+  const { data: receta, error: e1 } = await supa
+    .from('recetas')
+    .insert([{ nombre, tipo, rendimiento, unidad_salida: 'unidad' }])
+    .select().single();
+  if (e1) { alert('Error al guardar receta: ' + e1.message); return; }
+
+  // 2. Insertar ingredientes de la receta
+  const rows = recipeIngRows.map(r => ({
+    receta_id: receta.id,
+    ingrediente_id: r.ingId,
+    cantidad: r.qty || 1,
+  }));
+  const { error: e2 } = await supa.from('receta_ingredientes').insert(rows);
+  if (e2) { alert('Error al guardar ingredientes: ' + e2.message); return; }
+
+  closeModal('modal-recipe');
+  await loadData();
+  buildRecipes();
+  buildDashboard();
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
+
+function nav(page, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  if (el) el.classList.add('active');
+  if (page === 'dashboard')     buildDashboard();
+  if (page === 'stock')         buildStockTable();
+  if (page === 'recipes')       buildRecipes();
+  if (page === 'ingredientes')  buildIngMgmtTable();
+  closeMobileMenu();
+}
+
+// ============================================================
+// TEMA (día / noche)
+// ============================================================
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (isDark) {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('theme', 'light');
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('theme', 'dark');
+  }
+}
+
+// ============================================================
+// MENÚ MÓVIL
+// ============================================================
+function toggleMobileMenu() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-backdrop').classList.toggle('open');
+}
+function closeMobileMenu() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-backdrop').classList.remove('open');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+// ============================================================
+// AUTH — Login / Logout
+// ============================================================
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('auth-error');
+  errEl.style.display = 'none';
+  if (!email || !password) {
+    errEl.textContent = 'Ingresa tu correo y contraseña.';
+    errEl.style.display = 'block';
+    return;
+  }
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Ingresando...';
+  const { data, error } = await supa.auth.signInWithPassword({ email, password });
+  if (error) {
+    errEl.textContent = 'Correo o contraseña incorrectos.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Ingresar';
+    return;
+  }
+  await startApp(data.user);
+}
+
+async function doLogout() {
+  await supa.auth.signOut();
+  document.getElementById('auth-screen').style.display  = 'flex';
+  document.getElementById('app-root').style.display     = 'none';
+}
+
+async function startApp(user) {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-root').style.display    = 'block';
+  document.getElementById('user-email-label').textContent = user.email;
+  await loadData();
+  buildDashboard();
+  buildStockTable();
+  buildRecipes();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.getElementById('login-btn').addEventListener('click', doLogin);
+document.getElementById('login-password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+document.getElementById('logout-btn').addEventListener('click', doLogout);
+
+// Revisar si ya hay sesión activa
+supa.auth.getSession().then(({ data: { session } }) => {
+  if (session) startApp(session.user);
+});
+</script>
+</body>
+</html>
