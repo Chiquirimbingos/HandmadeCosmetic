@@ -302,6 +302,7 @@
   }
   .ing-ok-text { color: var(--accent-text); font-weight: 600; }
   .ing-bad-text { color: var(--danger); font-weight: 600; }
+  .form-control:disabled { opacity: .75; background: var(--surface-alt); color: var(--text-muted); cursor: default; }
 
   /* ── Cost / Price preview ── */
   .cost-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -828,7 +829,10 @@
     <input type="hidden" id="cat-id">
     <div class="form-group">
       <label>Categoría (grupo)</label>
-      <input type="text" class="form-control" id="cat-grupo" placeholder="Ej. Aceites, Fragancias, Aditivos" autocomplete="off">
+      <div style="display:flex;gap:4px">
+        <select class="form-control" id="cat-grupo" style="flex:1"></select>
+        <button type="button" class="btn" style="padding:.2rem .5rem;font-size:14px;line-height:1" onclick="quickAddCatGroup()" title="Nueva categoría">+</button>
+      </div>
     </div>
     <div class="form-group" style="margin-top:.5rem">
       <label>Nombre</label>
@@ -836,7 +840,7 @@
     </div>
     <div class="form-group" style="margin-top:.5rem">
       <label>Tipo de producto</label>
-      <input type="text" class="form-control" id="cat-tipo" placeholder="Ej. Insumo, Empaque, Etiquetas" autocomplete="off">
+      <input type="text" class="form-control" id="cat-tipo" placeholder="Ej. Insumo, Empaque, Etiquetas" autocomplete="off" oninput="updateCatGrupoOptions()">
       <span class="form-hint" style="font-size:11px;color:var(--text-muted);margin-top:3px;display:block">Agrupa los nombres por tipo de producto.</span>
     </div>
     <div class="modal-footer">
@@ -1340,7 +1344,8 @@ async function adjustStock(id) {
 function getCatTipos() {
   const tipos = new Set();
   categorias.forEach(c => { if (c.tipo_producto) tipos.add(c.tipo_producto); });
-  return ['all', ...Array.from(tipos).sort()];
+  const order = ['Insumo', 'Empaque'];
+  return ['all', ...order.filter(t => tipos.has(t))];
 }
 
 function filterCategorias(tipo, el) {
@@ -1391,11 +1396,43 @@ function openCatModal(id) {
   document.getElementById('modal-cat-title').textContent = id ? 'Editar categoría' : 'Nueva categoría';
   document.getElementById('cat-id').value = id || '';
   const c = id ? categorias.find(x => x.id == id) : null;
+  document.getElementById('cat-tipo').value = c?.tipo_producto || (catFilter === 'all' ? 'Insumo' : catFilter);
+  updateCatGrupoOptions();
   document.getElementById('cat-grupo').value = c?.categoria || '';
   document.getElementById('cat-name').value = c?.nombre || '';
-  document.getElementById('cat-tipo').value = c?.tipo_producto || (catFilter === 'all' ? 'Insumo' : catFilter);
+  document.getElementById('cat-grupo').disabled = !!id;
+  document.getElementById('cat-tipo').disabled = !!id;
+  document.getElementById('cat-name').disabled = false;
+  if (id) document.getElementById('cat-name').focus();
   document.getElementById('modal-categoria').classList.add('open');
-  document.getElementById('cat-grupo').focus();
+  if (!id) document.getElementById('cat-grupo').focus();
+}
+
+function updateCatGrupoOptions() {
+  const tipo = document.getElementById('cat-tipo').value;
+  const sel = document.getElementById('cat-grupo');
+  const grupos = {};
+  categorias.filter(c => c.tipo_producto === tipo).forEach(c => {
+    const g = c.categoria || 'Sin categoría';
+    if (!grupos[g]) grupos[g] = g;
+  });
+  const opts = Object.keys(grupos).sort();
+  sel.innerHTML = opts.length
+    ? opts.map(g => `<option value="${g}">${g}</option>`).join('')
+    : '<option value="">— Sin categorías para este tipo —</option>';
+}
+
+async function quickAddCatGroup() {
+  const tipo = document.getElementById('cat-tipo').value.trim();
+  if (!tipo) { alert('Primero escribe o selecciona un Tipo de producto.'); return; }
+  const grupo = prompt('Nueva categoría (grupo) — ej. Aceites, Fragancias:');
+  if (!grupo || !grupo.trim()) return;
+  const { error } = await supa.from('categorias').insert([{ nombre: grupo.trim(), categoria: grupo.trim(), tipo_producto: tipo }]);
+  if (error) { alert('Error: ' + error.message); return; }
+  const { data, error: e2 } = await supa.from('categorias').select('*').order('nombre');
+  if (!e2) categorias = data;
+  updateCatGrupoOptions();
+  document.getElementById('cat-grupo').value = grupo.trim();
 }
 
 async function renameCatField(input) {
