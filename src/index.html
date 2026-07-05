@@ -274,24 +274,20 @@
   .result-danger .result-num { color: var(--danger); }
   .result-label { font-size: 13px; margin-top: 4px; color: var(--text); line-height: 1.5; }
   .result-box .result-label { color: var(--text); }
-  .limiting-row { display: flex; align-items: center; gap: 8px; margin-top: .75rem; font-size: 12px; padding-top: .75rem; border-top: 1px solid var(--border); }
-
   /* ── Ingredient breakdown ── */
   .ing-list { display: flex; flex-direction: column; gap: 8px; margin-top: 1rem; }
   .ing-row {
     display: grid;
-    grid-template-columns: 1fr repeat(7, minmax(50px, auto));
+    grid-template-columns: 1fr repeat(5, minmax(50px, auto));
     gap: 8px;
     align-items: center;
     font-size: 12px; padding: .5rem .85rem;
     background: var(--surface-alt); border-radius: var(--radius-sm);
     border: 1px solid transparent;
   }
-  .ing-row.limiting { border-color: #e6b422; background: var(--warn-bg); }
-  .ing-row.missing { border-color: #c4544a; background: var(--danger-bg); }
   .ing-header {
     display: grid;
-    grid-template-columns: 1fr repeat(7, minmax(50px, auto));
+    grid-template-columns: 1fr repeat(5, minmax(50px, auto));
     gap: 6px;
     align-items: center;
     font-size: 10px; font-weight: 700; text-transform: uppercase;
@@ -328,8 +324,6 @@
   .recipe-card:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(31,122,140,.15); transform: translateY(-2px); }
   .recipe-card h4 { font-family: var(--font-heading); font-size: 15px; font-weight: 700; margin-bottom: 4px; letter-spacing: -.01em; }
   .recipe-card .meta { font-size: 12px; color: var(--text-muted); margin-bottom: .75rem; }
-  .recipe-card .max-units { font-size: 22px; font-weight: 800; color: var(--accent-text); font-family: var(--font-heading); letter-spacing: -.02em; }
-  .recipe-card .limiting-text { font-size: 11.5px; color: var(--warn); margin-top: 4px; }
   .recipe-ing-list { font-size: 12px; color: var(--text-muted); margin-top: .6rem; line-height: 1.6; }
 
   /* ── Modal / drawer ── */
@@ -351,6 +345,26 @@
   @keyframes modalIn { from { opacity: 0; transform: scale(.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
   .modal h3 { font-family: var(--font-heading); font-size: 17px; font-weight: 600; margin-bottom: 1.25rem; letter-spacing: -.01em; }
   .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+
+  /* Modal inline (como card, sin overlay) */
+  .modal-bg.inline {
+    position: static; background: none; backdrop-filter: none; z-index: auto;
+    display: block !important;
+  }
+  .modal-bg.inline .modal {
+    width: 100%; max-width: 100%; box-shadow: none; border: 1px solid var(--border);
+    border-radius: var(--radius); animation: none; max-height: none;
+  }
+
+  /* Modal content en página Editar Receta */
+  #edit-receta-container > .modal {
+    width: 100%; max-width: 100%; box-shadow: none; border: 1px solid var(--border);
+    border-radius: var(--radius); animation: none; max-height: none; padding: 1.5rem;
+  }
+  #edit-receta-container .form-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
+  #edit-receta-container .form-group label { font-size: 12.5px; }
+  #edit-receta-container #recipe-ings-list > div { gap: 10px; }
+  #edit-receta-container #recipe-ings-list select { min-width: 200px; }
 
   /* ── Modal Producto ── */
   .modal-lg .modal { width: 760px; padding: 2rem; }
@@ -531,9 +545,9 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
     Recetas
   </div>
-  <div class="nav-item" onclick="nav('simulate', this)">
+    <div class="nav-item" onclick="nav('simulate', this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h4v4H7zM13 8l4 4M17 8l-4 4"/></svg>
-    Simulador
+    Costo
   </div>
   <div class="nav-item" onclick="nav('productos', this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
@@ -607,37 +621,52 @@
 
     <!-- page-ingredientes removed — merged into page-productos -->
 
-    <!-- ========== SIMULADOR ========== -->
+    <!-- ========== COSTOS ========== -->
     <div class="page" id="page-simulate">
       <div class="page-header">
-        <h2>Simulador de producción</h2>
-        <p>Calcula cuánto puedes fabricar según el stock actual, o valida si tienes stock para una cantidad específica.</p>
+        <h2>Costo</h2>
+        <p>Desglose de costos por receta.</p>
       </div>
       <div class="card">
-        <div class="card-header"><h3>Configurar simulación</h3></div>
+        <div class="card-header"><h3>Seleccionar receta</h3></div>
         <div class="card-body">
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Receta</label>
-              <select class="form-control" id="sim-recipe" onchange="simulate()">
-                <option value="">Selecciona una receta...</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Unidades a fabricar</label>
-              <input type="number" class="form-control" id="sim-units" min="1" placeholder="Vacío = calcular máximo" oninput="simulate()">
-              <span class="form-hint">Déjalo vacío para ver el máximo posible</span>
+          <div class="form-group">
+            <label>Receta</label>
+            <select class="form-control" id="sim-recipe" onchange="simulate()">
+              <option value="">Selecciona una receta...</option>
+            </select>
+          </div>
+          <div id="costo-summary" style="display:none;background:#ecc8bc;border:1px solid #d9a898;border-radius:var(--radius-sm);padding:.6rem 1rem;margin-top:.75rem;font-size:12px">
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+              <div><strong style="color:#4a2c24">Fecha</strong><br><span id="cs-fecha" style="color:#2d5a3d;font-weight:600"></span></div>
+              <div><strong style="color:#4a2c24">Hora</strong><br><span id="cs-hora" style="color:#2d5a3d;font-weight:600"></span></div>
+              <div><strong style="color:#4a2c24">Lote</strong><br><span id="cs-rend" style="color:#2d5a3d;font-weight:600"></span></div>
+              <div style="border-left:1px solid #d9a898;padding-left:14px"><strong style="color:#4a2c24">Costo lote</strong><br><span id="cs-costo-lote" style="color:#166534;font-weight:700"></span></div>
+              <div><strong style="color:#4a2c24">Venta lote</strong><br><span id="cs-venta-lote" style="color:#166534;font-weight:700"></span></div>
+              <div style="border-left:1px solid #d9a898;padding-left:14px"><strong style="color:#4a2c24">Costo u.</strong><br><span id="cs-costo" style="color:#166534;font-weight:600"></span></div>
+              <div><strong style="color:#4a2c24">Venta u.</strong><br><span id="cs-venta" style="color:#166534;font-weight:600"></span></div>
+              <button class="btn btn-primary" id="cs-grabar" style="display:none;margin-left:auto;font-size:12px;padding:.35rem .9rem">Grabar</button>
             </div>
           </div>
           <div id="sim-result"></div>
         </div>
       </div>
       <div class="card hidden" id="breakdown-card">
-        <div class="card-header"><h3>Desglose por ingrediente</h3></div>
+        <div class="card-header"><h3>Desglose por ingrediente</h3>
+          <button class="btn" style="font-size:12px;padding:.3rem .7rem" onclick="goEditRecipeFromSim()">Editar receta</button>
+        </div>
         <div class="card-body">
           <div class="ing-list" id="ing-breakdown"></div>
         </div>
       </div>
+    </div>
+
+    <!-- ========== EDITAR RECETA ========== -->
+    <div class="page" id="page-edit-receta">
+      <div class="page-header">
+        <h2>Editar receta</h2>
+      </div>
+      <div id="edit-receta-container"></div>
     </div>
 
     <!-- ========== PRODUCTOS (unificado: Terminados + Insumos + Empaques) ========== -->
@@ -904,7 +933,11 @@
     </div>
     <div id="recipe-ings-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:.75rem"></div>
     <div class="modal-footer">
-      <button class="btn" onclick="closeModal('modal-recipe')">Cancelar</button>
+      <button class="btn" onclick="volverDesdeEditReceta()" style="margin-right:auto;font-size:12px;padding:.3rem .7rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button class="btn" onclick="if (window._editRecipeRestore) volverDesdeEditReceta(); else if (document.getElementById('modal-recipe').classList.contains('inline')) cancelEditFromCosto(); else closeModal('modal-recipe')">Cancelar</button>
+      <button class="btn" onclick="goSimulateFromEdit()" style="font-size:12px">Ver costos</button>
       <button class="btn btn-primary" onclick="saveRecipe()">Guardar receta</button>
     </div>
   </div>
@@ -1011,19 +1044,6 @@ function calcMax(recipe) {
     if (possible < maxUnits) { maxUnits = possible; limitingProd = prod; }
   }
   return { maxUnits: maxUnits === Infinity ? 0 : maxUnits, limitingProd };
-}
-
-function validateProduction(recipe, units) {
-  const result = { possible: true, items: [] };
-  for (const ri of recipe.ingredients) {
-    const prod = productos.find(p => p.id === ri.prodId);
-    if (!prod) continue;
-    const needed = ri.qty * units;
-    const ok = prod.stock >= needed;
-    if (!ok) result.possible = false;
-    result.items.push({ prod, needed, available: prod.stock, ok, deficit: ok ? 0 : needed - prod.stock });
-  }
-  return result;
 }
 
 function calcularCostoReceta(recipeId) {
@@ -1496,7 +1516,6 @@ function buildRecipes() {
   document.getElementById('recipes-grid').innerHTML = lista.length === 0
     ? '<p style="color:var(--text-muted);font-size:13px;padding:1rem 0">Sin recetas para este tipo.</p>'
     : lista.map(r => {
-    const { maxUnits, limitingProd } = calcMax(r);
     const ingNames = r.ingredients.map(ri => {
       const prod = productos.find(p => p.id === ri.prodId);
       return prod ? `${prod.name} (${ri.qty}${prod.unit})` : '';
@@ -1508,17 +1527,15 @@ function buildRecipes() {
       </div>
       <h4>${r.name}</h4>
       <div class="meta">Rinde ${r.yield} ${r.yieldUnit} por lote</div>
-      <div class="max-units">${maxUnits} <span style="font-size:14px;font-weight:400;color:var(--text-muted)">unidades posibles</span></div>
-      ${limitingProd ? `<div class="limiting-text">⚠ Limitante: ${limitingProd.name} (${limitingProd.stock} ${limitingProd.unit} disponibles)</div>` : ''}
       <div class="recipe-ing-list mt-2">${ingNames}</div>
       <div style="display:flex;gap:6px;margin-top:.6rem">
         <button class="btn" style="padding:.25rem .6rem;font-size:12px" onclick="event.stopPropagation();verCostoReceta('${r.id}')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="2"/><path d="M21 12c-4.5 0-6.5-4-9-4s-4.5 4-9 4 4.5 4 9 4 4.5-4 9-4z"/></svg>
           Costo
         </button>
-        <button class="btn" style="padding:.25rem .6rem;font-size:12px" onclick="event.stopPropagation();editRecipe('${r.id}')">
+        <button class="btn" style="padding:.25rem .6rem;font-size:12px" onclick="event.stopPropagation();editRecipePage('${r.id}')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4v16h16v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          Editar
+          Editar receta
         </button>
         <button class="btn" style="padding:.25rem .6rem;font-size:12px;color:var(--danger)" onclick="event.stopPropagation();deleteRecipe('${r.id}')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -1545,27 +1562,9 @@ function goSimulate(recipeId) {
 function verCostoReceta(recipeId) {
   const recipe = recipes.find(r => r.id === recipeId);
   if (!recipe) return;
-  const { costoTotal, costoUnitario, breakdown, rend } = calcularCostoReceta(recipeId);
-  document.getElementById('receta-costo-title').textContent = 'Costo: ' + recipe.name;
-  document.getElementById('receta-costo-total').textContent = fmtMoney(costoTotal);
-  document.getElementById('receta-costo-rend').textContent = rend + ' ' + (recipe.yieldUnit || 'unidad');
-  document.getElementById('receta-costo-unitario').textContent = fmtMoney(costoUnitario);
-
-  const bdEl = document.getElementById('receta-costo-breakdown');
-  if (breakdown.length) {
-    bdEl.innerHTML = '<div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:4px">INGREDIENTES</div>' +
-      breakdown.map(b => `<div class="cost-row">
-        <span class="ing-name">${b.name}</span>
-        <span>${b.qty} ${b.unit} × ${fmtMoney(b.costo)}/${b.unit} = <span class="ing-cost">${fmtMoney(b.subtotal)}</span></span>
-      </div>`).join('') +
-      `<div class="cost-row">
-        <span><strong>TOTAL</strong></span>
-        <span><strong>${fmtMoney(costoTotal)}</strong></span>
-      </div>`;
-  } else {
-    bdEl.innerHTML = '<div class="text-muted text-sm" style="padding:.5rem 0">Los ingredientes de esta receta no tienen costo asignado.</div>';
-  }
-  document.getElementById('modal-receta-costo').classList.add('open');
+  document.getElementById('sim-recipe').value = recipeId;
+  nav('simulate', document.querySelector('[onclick*="simulate"]'));
+  simulate();
 }
 
 // ============================================================
@@ -1573,103 +1572,123 @@ function verCostoReceta(recipeId) {
 // ============================================================
 function simulate() {
   const recipeId = document.getElementById('sim-recipe').value;
-  const unitsInput = parseInt(document.getElementById('sim-units').value) || 0;
   const resultEl = document.getElementById('sim-result');
   const breakdownCard = document.getElementById('breakdown-card');
   const breakdownEl = document.getElementById('ing-breakdown');
 
-  if (!recipeId) { resultEl.innerHTML = ''; breakdownCard.classList.add('hidden'); return; }
+  if (!recipeId) { resultEl.innerHTML = ''; breakdownCard.classList.add('hidden'); document.getElementById('costo-summary').style.display = 'none'; return; }
 
   const recipe = recipes.find(r => r.id === recipeId);
-  const { maxUnits, limitingProd } = calcMax(recipe);
 
-  if (unitsInput > 0) {
-    const v = validateProduction(recipe, unitsInput);
-    const cls = v.possible ? 'ok' : 'danger';
-    const icon = v.possible ? '✓' : '✗';
-    resultEl.innerHTML = `<div class="result-box result-${cls}">
-      <div class="result-num">${icon} ${v.possible ? 'Producción posible' : 'Sin stock suficiente'}</div>
-      <div class="result-label">${v.possible
-        ? `Puedes fabricar ${unitsInput} unidades. Capacidad restante: ${maxUnits - unitsInput} unidades.`
-        : `Solo puedes fabricar ${maxUnits} unidades. Revisa los ingredientes marcados en rojo.`
-      }</div>
+  resultEl.innerHTML = `<div class="result-box result-ok">
+    <div class="result-num">${recipe.name}</div>
+    <div class="result-label">Rinde ${recipe.yield} ${recipe.yieldUnit || 'unidad'} por lote</div>
+  </div>`;
+  let totalCosto = 0, totalVenta = 0;
+  const hdr = `<div class="ing-header">
+    <span>Producto</span><span style="color:#EAB308">ValProd</span><span style="color:#EAB308">Cantidad</span><span style="color:#7DD3FC">Por unidad</span><span style="text-align:right;color:#0CD6B0">Costo</span><span style="text-align:right;color:#22C55E">Venta</span>
+  </div>`;
+  breakdownEl.innerHTML = hdr + recipe.ingredients.map(ri => {
+    const prod = productos.find(p => p.id === ri.prodId);
+    if (!prod) return '';
+    const costoUnidad = prod.cant > 0 ? prod.costo / prod.cant : 0;
+    const ventaUnidad = prod.cant > 0 ? prod.precioVenta / prod.cant : 0;
+    const subtotalCosto = ri.qty * costoUnidad;
+    const subtotalVenta = ri.qty * ventaUnidad;
+    totalCosto += subtotalCosto;
+    totalVenta += subtotalVenta;
+    return `<div class="ing-row">
+      <span style="font-weight:500">${prod.name}</span>
+      <span style="color:#EAB308">${fmtMoney(prod.costo)}</span>
+      <span style="color:#EAB308">${prod.cant}</span>
+      <span style="color:#7DD3FC">${ri.qty} ${prod.unit}</span>
+      <span style="text-align:right;color:#0CD6B0">${fmtMoney(subtotalCosto)}</span>
+      <span style="text-align:right;color:#22C55E">${fmtMoney(subtotalVenta)}</span>
     </div>`;
-    let totalCosto = 0, totalVenta = 0;
-    const hdr1 = `<div class="ing-header">
-      <span>Producto</span><span>Stock</span><span>Permite</span><span style="color:#EAB308">ValProd</span><span style="color:#EAB308">Cantidad</span><span style="color:#7DD3FC">Por unidad</span><span style="text-align:right;color:#0CD6B0">Costo</span><span style="text-align:right;color:#22C55E">Venta</span>
+  }).join('')
+  + `<div class="ing-row" style="font-weight:700;border-top:2px solid var(--border);margin-top:3px;background:none">
+      <span>Total por unidad producida</span>
+      <span></span><span></span><span></span>
+      <span style="text-align:right;color:#0CD6B0">${fmtMoney(totalCosto)}</span>
+      <span style="text-align:right;color:#22C55E">${fmtMoney(totalVenta)}</span>
     </div>`;
-    breakdownEl.innerHTML = hdr1 + v.items.map(it => {
-      const cls = it.ok ? '' : 'missing';
-      const costoUnidad = it.prod.cant > 0 ? it.prod.costo / it.prod.cant : 0;
-      const ventaUnidad = it.prod.cant > 0 ? it.prod.precioVenta / it.prod.cant : 0;
-      const subtotalCosto = it.needed * costoUnidad;
-      const subtotalVenta = it.needed * ventaUnidad;
-      const permiteBatch = Math.floor(it.available / it.needed);
-      totalCosto += subtotalCosto;
-      totalVenta += subtotalVenta;
-      return `<div class="ing-row ${cls}">
-        <span style="font-weight:500">${it.prod.name}</span>
-        <span>${it.available} ${it.prod.unit}</span>
-        <span>${permiteBatch} u.</span>
-        <span style="color:#EAB308">${fmtMoney(it.prod.costo)}</span>
-        <span style="color:#EAB308">${it.prod.cant}</span>
-        <span style="color:#7DD3FC">${it.needed} ${it.prod.unit}</span>
-        <span style="text-align:right;color:#0CD6B0">${fmtMoney(subtotalCosto)}</span>
-        <span style="text-align:right;color:#22C55E">${fmtMoney(subtotalVenta)}</span>
-      </div>`;
-    }).join('')
-    + `<div class="ing-row" style="font-weight:700;border-top:2px solid var(--border);margin-top:3px;background:none">
-        <span>Total por ${unitsInput} ${unitsInput === 1 ? 'unidad' : 'unidades'}</span>
-        <span></span><span></span><span></span><span></span><span></span>
-        <span style="text-align:right;color:#0CD6B0">${fmtMoney(totalCosto)}</span>
-        <span style="text-align:right;color:#22C55E">${fmtMoney(totalVenta)}</span>
-      </div>`;
-  } else {
-    const cls = maxUnits > 5 ? 'ok' : maxUnits > 0 ? 'warn' : 'danger';
-    resultEl.innerHTML = `<div class="result-box result-${cls}">
-      <div class="result-num">${maxUnits} ${maxUnits === 1 ? 'unidad' : 'unidades'}</div>
-      <div class="result-label">Máximo producible con el stock actual</div>
-      ${limitingProd ? `<div class="limiting-row">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-        Ingrediente limitante: <strong>${limitingProd.name}</strong> &mdash; ${limitingProd.stock} ${limitingProd.unit} disponibles
-        (${limitingProd.min > 0 ? Math.round(limitingProd.stock / limitingProd.min * 100) : '—'}% del mínimo recomendado)
-      </div>` : ''}
-    </div>`;
-    let totalCosto = 0, totalVenta = 0;
-    const hdr2 = `<div class="ing-header">
-      <span>Producto</span><span>Stock</span><span>Permite</span><span style="color:#EAB308">ValProd</span><span style="color:#EAB308">Cantidad</span><span style="color:#7DD3FC">Por unidad</span><span style="text-align:right;color:#0CD6B0">Costo</span><span style="text-align:right;color:#22C55E">Venta</span>
-    </div>`;
-    breakdownEl.innerHTML = hdr2 + recipe.ingredients.map(ri => {
-      const prod = productos.find(p => p.id === ri.prodId);
-      if (!prod) return '';
-      const possible = Math.floor(prod.stock / ri.qty);
-      const isLimit = limitingProd?.id === prod.id;
-      const costoUnidad = prod.cant > 0 ? prod.costo / prod.cant : 0;
-      const ventaUnidad = prod.cant > 0 ? prod.precioVenta / prod.cant : 0;
-      const subtotalCosto = ri.qty * costoUnidad;
-      const subtotalVenta = ri.qty * ventaUnidad;
-      totalCosto += subtotalCosto;
-      totalVenta += subtotalVenta;
-      return `<div class="ing-row ${isLimit ? 'limiting' : ''}">
-        <span ${isLimit ? 'style="font-weight:600"' : ''}>${prod.name}${isLimit ? ' ⚠' : ''}</span>
-        <span>${prod.stock} ${prod.unit}</span>
-        <span><strong>${possible} u.</strong></span>
-        <span style="color:#EAB308">${fmtMoney(prod.costo)}</span>
-        <span style="color:#EAB308">${prod.cant}</span>
-        <span style="color:#7DD3FC">${ri.qty} ${prod.unit}</span>
-        <span style="text-align:right;color:#0CD6B0">${fmtMoney(subtotalCosto)}</span>
-        <span style="text-align:right;color:#22C55E">${fmtMoney(subtotalVenta)}</span>
-      </div>`;
-    }).join('')
-    + `<div class="ing-row" style="font-weight:700;border-top:2px solid var(--border);margin-top:3px;background:none">
-        <span>Total por unidad producida</span>
-        <span></span><span></span><span></span><span></span><span></span>
-        <span style="text-align:right;color:#0CD6B0">${fmtMoney(totalCosto)}</span>
-        <span style="text-align:right;color:#22C55E">${fmtMoney(totalVenta)}</span>
-      </div>`;
-  }
 
   breakdownCard.classList.remove('hidden');
+
+  const now = new Date();
+  document.getElementById('costo-summary').style.display = 'block';
+  document.getElementById('cs-fecha').textContent = now.toLocaleDateString('es-CL');
+  document.getElementById('cs-hora').textContent = now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('cs-rend').textContent = recipe.yield + ' ' + (recipe.yieldUnit || 'unidad');
+  const costoUnit = recipe.yield > 0 ? totalCosto / recipe.yield : 0;
+  const ventaUnit = recipe.yield > 0 ? totalVenta / recipe.yield : 0;
+  document.getElementById('cs-costo').textContent = fmtMoney(costoUnit);
+  document.getElementById('cs-venta').textContent = fmtMoney(ventaUnit);
+  document.getElementById('cs-costo-lote').textContent = fmtMoney(totalCosto);
+  document.getElementById('cs-venta-lote').textContent = fmtMoney(totalVenta);
+  document.getElementById('cs-grabar').style.display = 'inline-flex';
+  document.getElementById('cs-grabar').onclick = function () { console.log('Grabar pendiente'); };
+}
+
+function goEditRecipeFromSim() {
+  const recipeId = document.getElementById('sim-recipe').value;
+  if (!recipeId) return;
+  if (window._editRecipeRestore) window._editRecipeRestore();
+  const modalContent = document.querySelector('#modal-recipe > .modal');
+  if (!modalContent) return;
+  const container = document.getElementById('edit-receta-container');
+  container.innerHTML = '';
+  container.appendChild(modalContent);
+  window._editRecipeRestore = function () {
+    document.getElementById('modal-recipe').appendChild(modalContent);
+    window._editRecipeRestore = null;
+  };
+  window._editRecipeReturn = 'simulate';
+  nav('edit-receta', null);
+  editRecipe(recipeId);
+  document.getElementById('modal-recipe').classList.remove('open');
+}
+
+function editRecipePage(id) {
+  if (window._editRecipeRestore) window._editRecipeRestore();
+  const modalContent = document.querySelector('#modal-recipe > .modal');
+  if (!modalContent) return;
+  const container = document.getElementById('edit-receta-container');
+  container.innerHTML = '';
+  container.appendChild(modalContent);
+  window._editRecipeRestore = function () {
+    document.getElementById('modal-recipe').appendChild(modalContent);
+    window._editRecipeRestore = null;
+  };
+  window._editRecipeReturn = 'recipes';
+  nav('edit-receta', null);
+  editRecipe(id);
+  document.getElementById('modal-recipe').classList.remove('open');
+}
+
+function volverDesdeEditReceta() {
+  if (window._editRecipeRestore) window._editRecipeRestore();
+  document.getElementById('modal-recipe').classList.remove('open');
+  const ret = window._editRecipeReturn || 'simulate';
+  nav(ret, document.querySelector('.nav-item[onclick*="' + ret + '"]'));
+  if (ret === 'simulate') simulate();
+}
+
+function goSimulateFromEdit() {
+  const recipeId = editingRecipeId;
+  if (!recipeId) return;
+  const wasEditPage = !!window._editRecipeRestore;
+  const wasInline = document.getElementById('modal-recipe').classList.contains('inline');
+  closeModal('modal-recipe');
+  if (wasEditPage && window._editRecipeRestore) window._editRecipeRestore();
+  if (wasInline) {
+    document.getElementById('modal-recipe').classList.remove('inline');
+    document.querySelector('.actions-bar').style.display = '';
+    document.getElementById('recipes-grid').style.display = '';
+  }
+  document.getElementById('sim-recipe').value = recipeId;
+  nav('simulate', document.querySelector('.nav-item[onclick*="simulate"]'));
+  simulate();
 }
 
 // (openAddIngredientModal / addIngredient — removed, unified into modal-producto)
@@ -1802,10 +1821,23 @@ async function saveRecipe() {
     if (e2) { alert('Error al guardar ingredientes: ' + e2.message + '\n\nDatos: ' + JSON.stringify(rows[0])); return; }
   }
 
+  const wasEditPage = !!window._editRecipeRestore;
+  const wasInline = document.getElementById('modal-recipe').classList.contains('inline');
   closeModal('modal-recipe');
+  if (wasInline) {
+    document.getElementById('modal-recipe').classList.remove('inline');
+    document.querySelector('.actions-bar').style.display = '';
+    document.getElementById('recipes-grid').style.display = '';
+  }
   await loadData();
   buildRecipes();
   buildDashboard();
+  if (wasEditPage) {
+    if (window._editRecipeRestore) window._editRecipeRestore();
+    const ret = window._editRecipeReturn || 'recipes';
+    nav(ret, document.querySelector('.nav-item[onclick*="' + ret + '"]'));
+    if (ret === 'simulate') simulate();
+  }
 }
 
 // ============================================================
