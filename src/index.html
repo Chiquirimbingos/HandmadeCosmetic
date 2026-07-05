@@ -545,10 +545,6 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
     Recetas
   </div>
-    <div class="nav-item" onclick="nav('simulate', this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h4v4H7zM13 8l4 4M17 8l-4 4"/></svg>
-    Costo
-  </div>
   <div class="nav-item" onclick="nav('productos', this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
     Productos
@@ -556,6 +552,10 @@
   <div class="nav-item" onclick="nav('categorias', this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3M4 7v9h16V7M4 7h16"/><rect x="2" y="13" width="20" height="7" rx="1"/><path d="M8 13v7"/></svg>
     Categorías
+  </div>
+  <div class="nav-item" onclick="nav('produccion', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    Producción
   </div>
   <div class="theme-toggle-row">
     <span>
@@ -725,6 +725,48 @@
           <thead><tr><th style="width:180px">Categoría</th><th>Nombre</th><th style="width:140px">Acciones</th></tr></thead>
           <tbody id="cat-table"></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- ========== PRODUCCIÓN ========== -->
+    <div class="page" id="page-produccion">
+      <div class="page-header">
+        <h2>Producción</h2>
+        <p>Historial de lotes producidos.</p>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div style="display:flex;gap:.75rem;align-items:end;flex-wrap:wrap;margin-bottom:1rem">
+            <div class="form-group" style="flex:0 0 auto;margin-bottom:0">
+              <label>Desde</label>
+              <input type="date" class="form-control" id="prod-desde" style="font-size:13px">
+            </div>
+            <div class="form-group" style="flex:0 0 auto;margin-bottom:0">
+              <label>Hasta</label>
+              <input type="date" class="form-control" id="prod-hasta" style="font-size:13px">
+            </div>
+            <button class="btn btn-primary" onclick="buildProduccion()" style="font-size:12px;padding:.35rem .9rem">Filtrar</button>
+            <button class="btn" onclick="document.getElementById('prod-desde').value='';document.getElementById('prod-hasta').value='';buildProduccion()" style="font-size:12px;padding:.35rem .9rem">Limpiar</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th style="white-space:nowrap">Receta</th>
+                  <th style="white-space:nowrap;min-width:105px">Fecha</th>
+                  <th style="white-space:nowrap">Hora</th>
+                  <th style="white-space:nowrap">U</th>
+                  <th style="white-space:nowrap">Costo lote</th>
+                  <th style="white-space:nowrap">Venta lote</th>
+                  <th style="white-space:nowrap">Costo u.</th>
+                  <th style="white-space:nowrap">Venta u.</th>
+                </tr>
+              </thead>
+              <tbody id="prod-table"></tbody>
+            </table>
+          </div>
+          <p id="prod-empty" style="text-align:center;color:var(--text-muted);font-size:13px;padding:2rem 0;display:none">Sin registros de producción.</p>
+        </div>
       </div>
     </div>
 
@@ -1555,7 +1597,7 @@ function buildRecipes() {
 
 function goSimulate(recipeId) {
   document.getElementById('sim-recipe').value = recipeId;
-  nav('simulate', document.querySelector('[onclick*="simulate"]'));
+  nav('simulate', null);
   simulate();
 }
 
@@ -1563,7 +1605,7 @@ function verCostoReceta(recipeId) {
   const recipe = recipes.find(r => r.id === recipeId);
   if (!recipe) return;
   document.getElementById('sim-recipe').value = recipeId;
-  nav('simulate', document.querySelector('[onclick*="simulate"]'));
+  nav('simulate', null);
   simulate();
 }
 
@@ -1627,7 +1669,69 @@ function simulate() {
   document.getElementById('cs-costo-lote').textContent = fmtMoney(totalCosto);
   document.getElementById('cs-venta-lote').textContent = fmtMoney(totalVenta);
   document.getElementById('cs-grabar').style.display = 'inline-flex';
-  document.getElementById('cs-grabar').onclick = function () { console.log('Grabar pendiente'); };
+  const btn = document.getElementById('cs-grabar');
+  btn.dataset.recipeId = recipeId;
+  btn.dataset.recipeName = recipe.name;
+  btn.dataset.costoLote = totalCosto;
+  btn.dataset.ventaLote = totalVenta;
+  btn.dataset.costoUnit = costoUnit;
+  btn.dataset.ventaUnit = ventaUnit;
+  btn.dataset.rend = recipe.yield;
+}
+
+async function grabarCosto() {
+  const btn = document.getElementById('cs-grabar');
+  const recipeId = btn.dataset.recipeId;
+  if (!recipeId) { alert('Selecciona una receta primero.'); return; }
+  const recipeName = btn.dataset.recipeName || document.getElementById('sim-recipe').selectedOptions[0]?.textContent || '';
+  const costoLote = parseFloat(btn.dataset.costoLote);
+  const ventaLote = parseFloat(btn.dataset.ventaLote);
+  const costoUnit = parseFloat(btn.dataset.costoUnit);
+  const ventaUnit = parseFloat(btn.dataset.ventaUnit);
+  const rend = parseInt(btn.dataset.rend);
+  if (!rend) { alert('La receta no tiene rendimiento.'); return; }
+  const now = new Date();
+  const fecha = now.toISOString().slice(0, 10);
+  const hora = now.toTimeString().slice(0, 8);
+  const { error } = await supa.from('produccion').insert({
+    receta_id: recipeId,
+    receta_nombre: recipeName,
+    fecha,
+    hora,
+    rendimiento: rend,
+    costo_lote: costoLote,
+    venta_lote: ventaLote,
+    costo_unitario: costoUnit,
+    venta_unitario: ventaUnit,
+  });
+  if (error) { alert('Error al guardar costo: ' + error.message); return; }
+  alert('Costo guardado correctamente.');
+}
+
+async function buildProduccion() {
+  const tbody = document.getElementById('prod-table');
+  const empty = document.getElementById('prod-empty');
+  const desde = document.getElementById('prod-desde').value;
+  const hasta = document.getElementById('prod-hasta').value;
+  let query = supa.from('produccion').select('*').order('created_at', { ascending: false });
+  if (desde) query = query.gte('fecha', desde);
+  if (hasta) query = query.lte('fecha', hasta);
+  const { data, error } = await query;
+  if (error) { tbody.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Error al cargar: ' + error.message; return; }
+  if (!data || data.length === 0) {
+    tbody.innerHTML = ''; empty.style.display = 'block'; return;
+  }
+  empty.style.display = 'none';
+  tbody.innerHTML = data.map(r => `<tr>
+    <td style="white-space:nowrap">${r.receta_nombre || '-'}</td>
+    <td style="white-space:nowrap">${r.fecha ? r.fecha.slice(0, 10) : '-'}</td>
+    <td style="white-space:nowrap">${r.hora ? r.hora.slice(0, 5) : '-'}</td>
+    <td style="white-space:nowrap">${r.rendimiento}</td>
+    <td style="white-space:nowrap;color:var(--accent);font-weight:600">$${Math.round(Number(r.costo_lote)).toLocaleString('es-CL')}</td>
+    <td style="white-space:nowrap;color:#16a34a;font-weight:600">$${Math.round(Number(r.venta_lote)).toLocaleString('es-CL')}</td>
+    <td style="white-space:nowrap;color:var(--accent)">$${Math.round(Number(r.costo_unitario)).toLocaleString('es-CL')}</td>
+    <td style="white-space:nowrap;color:#16a34a">$${Math.round(Number(r.venta_unitario)).toLocaleString('es-CL')}</td>
+  </tr>`).join('');
 }
 
 function goEditRecipeFromSim() {
@@ -1687,7 +1791,7 @@ function goSimulateFromEdit() {
     document.getElementById('recipes-grid').style.display = '';
   }
   document.getElementById('sim-recipe').value = recipeId;
-  nav('simulate', document.querySelector('.nav-item[onclick*="simulate"]'));
+  nav('simulate', null);
   simulate();
 }
 
@@ -1856,6 +1960,7 @@ function nav(page, el) {
   if (page === 'productos')  buildProductosTable();
   if (page === 'categorias') buildCatTable();
   if (page === 'simulate')   simulate();
+  if (page === 'produccion') buildProduccion();
   closeMobileMenu();
 }
 
@@ -1932,6 +2037,7 @@ async function startApp(user) {
 // ============================================================
 // INIT
 // ============================================================
+document.getElementById('cs-grabar').addEventListener('click', grabarCosto);
 document.getElementById('login-btn').addEventListener('click', doLogin);
 document.getElementById('login-password').addEventListener('keydown', e => {
   if (e.key === 'Enter') doLogin();
