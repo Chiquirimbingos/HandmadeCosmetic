@@ -558,6 +558,10 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
     Producción
   </div>
+  <div class="nav-item" onclick="nav('ventas', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    Ventas
+  </div>
   <div class="theme-toggle-row">
     <span>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
@@ -753,19 +757,19 @@
             </div>
             <button class="btn btn-primary" onclick="buildProduccion()" style="font-size:12px;padding:.35rem .9rem">Filtrar</button>
             <button class="btn" onclick="document.getElementById('prod-desde').value='';document.getElementById('prod-hasta').value='';buildProduccion()" style="font-size:12px;padding:.35rem .9rem">Limpiar</button>
+            <button class="btn" onclick="openEliminarProdModal()" style="font-size:12px;padding:.35rem .9rem;color:var(--danger);border-color:var(--danger);margin-left:auto">Eliminar</button>
           </div>
           <div style="overflow-x:auto">
             <table>
               <thead>
                 <tr>
+                  <th style="white-space:nowrap">Codigo</th>
                   <th style="white-space:nowrap">Receta</th>
                   <th style="white-space:nowrap;min-width:105px">Fecha</th>
                   <th style="white-space:nowrap">Hora</th>
                   <th style="white-space:nowrap">U</th>
-                  <th style="white-space:nowrap">Costo lote</th>
-                  <th style="white-space:nowrap">Venta lote</th>
-                  <th style="white-space:nowrap">Costo u.</th>
-                  <th style="white-space:nowrap">Venta u.</th>
+                  <th style="white-space:nowrap;text-align:right">Costo lote</th>
+                  <th style="white-space:nowrap;text-align:right">Venta lote</th>
                 </tr>
               </thead>
               <tbody id="prod-table"></tbody>
@@ -777,6 +781,87 @@
             <button class="btn" id="prod-next" onclick="prodPage++;renderProdPage()" style="font-size:12px;padding:.3rem .7rem">Siguiente</button>
           </div>
           <p id="prod-empty" style="text-align:center;color:var(--text-muted);font-size:13px;padding:2rem 0;display:none">Sin registros de producción.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== VENTAS ========== -->
+    <div class="page" id="page-ventas">
+      <div class="page-header">
+        <h2>Ventas</h2>
+        <p>Registro de ventas.</p>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Nueva venta</h3></div>
+        <div class="card-body">
+          <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr">
+            <div class="form-group">
+              <label>Receta</label>
+              <select class="form-control" id="vta-receta" onchange="autoCalcValor()"><option value="">Seleccionar...</option></select>
+            </div>
+            <div class="form-group">
+              <label>Fecha</label>
+              <input type="date" class="form-control" id="vta-fecha" style="color-scheme:dark">
+            </div>
+            <div class="form-group">
+              <label>Hora</label>
+              <input type="time" class="form-control" id="vta-hora" style="color-scheme:dark">
+            </div>
+            <div class="form-group">
+              <label>Cantidad (u)</label>
+              <input type="number" class="form-control" id="vta-cant" placeholder="1" min="1" value="1" oninput="autoCalcValor()">
+            </div>
+            <div class="form-group">
+              <label>Valor</label>
+              <input type="number" class="form-control" id="vta-valor" placeholder="0" min="0" step="any">
+            </div>
+            <div class="form-group">
+              <label>Pago</label>
+              <select class="form-control" id="vta-pago">
+                <option value="Efectivo">Efectivo</option>
+                <option value="Tarjeta Debito">Tarjeta D&eacute;bito</option>
+                <option value="Tarjeta Credito">Tarjeta Cr&eacute;dito</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Nombre Cliente</label>
+              <input type="text" class="form-control" id="vta-cliente" placeholder="Nombre del cliente">
+            </div>
+            <div class="form-group">
+              <label>Celular</label>
+              <input type="text" class="form-control" id="vta-celular" placeholder="+56 9 XXXX XXXX">
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Observaciones</label>
+              <textarea class="form-control" id="vta-obs" rows="2" placeholder="Opcional"></textarea>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="saveVenta()" style="margin-top:.5rem">Guardar venta</button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <div class="card-header"><h3>Historial de ventas</h3></div>
+        <div class="card-body" style="padding:0">
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cod</th>
+                  <th>Receta</th>
+                  <th>Fecha</th>
+                  <th>Hora</th>
+                  <th>U</th>
+                  <th>Valor</th>
+                  <th>Pago</th>
+                  <th>Cliente</th>
+                  <th>Celular</th>
+                  <th>Obs</th>
+                </tr>
+              </thead>
+              <tbody id="vta-table"></tbody>
+            </table>
+          </div>
+          <p id="vta-empty" style="text-align:center;color:var(--text-muted);font-size:13px;padding:2rem 0;display:none">Sin ventas registradas.</p>
         </div>
       </div>
     </div>
@@ -1004,6 +1089,21 @@
         <p id="modal-dialog-msg" style="margin:0;font-size:14px;line-height:1.5;flex:1"></p>
       </div>
       <div id="modal-dialog-btns" style="display:flex;gap:.5rem;justify-content:end;margin-top:1rem"></div>
+    </div>
+  </div>
+
+  <!-- Modal eliminar produccion por codigo -->
+  <div class="modal-bg" id="modal-eliminar-prod">
+    <div class="modal" style="max-width:380px;border:2px solid var(--danger);box-shadow:0 0 20px rgba(220,38,38,.3)">
+      <h3 style="margin:0 0 1rem;font-size:16px">Eliminar registro</h3>
+      <div class="form-group" style="margin-bottom:1rem">
+        <label>Ingresa el codigo del registro a eliminar</label>
+        <input type="number" class="form-control" id="prod-eliminar-input" placeholder="Ej. 1" min="1" style="font-size:14px">
+      </div>
+      <div style="display:flex;gap:.5rem;justify-content:end">
+        <button class="btn" onclick="closeModal('modal-eliminar-prod')" style="font-size:12px;padding:.35rem .9rem">Cancelar</button>
+        <button class="btn" onclick="eliminarProduccionCodigo()" style="font-size:12px;padding:.35rem .9rem;background:var(--danger);color:#fff;border-color:var(--danger)">Eliminar Codigo</button>
+      </div>
     </div>
   </div>
 
@@ -1795,18 +1895,119 @@ function renderProdPage() {
   const start = (prodPage - 1) * prodPageSize;
   const pageData = prodData.slice(start, start + prodPageSize);
   tbody.innerHTML = pageData.map(r => `<tr>
+    <td style="white-space:nowrap;font-weight:600;color:var(--text)">${r.codigo || '-'}</td>
     <td style="white-space:nowrap">${r.receta_nombre || '-'}</td>
     <td style="white-space:nowrap">${r.fecha ? r.fecha.slice(0, 10) : '-'}</td>
     <td style="white-space:nowrap">${r.hora ? r.hora.slice(0, 5) : '-'}</td>
     <td style="white-space:nowrap">${r.rendimiento}</td>
-    <td style="white-space:nowrap;color:var(--accent);font-weight:600">$${Math.round(Number(r.costo_lote)).toLocaleString('es-CL')}</td>
-    <td style="white-space:nowrap;color:#16a34a;font-weight:600">$${Math.round(Number(r.venta_lote)).toLocaleString('es-CL')}</td>
-    <td style="white-space:nowrap;color:var(--accent)">$${Math.round(Number(r.costo_unitario)).toLocaleString('es-CL')}</td>
-    <td style="white-space:nowrap;color:#16a34a">$${Math.round(Number(r.venta_unitario)).toLocaleString('es-CL')}</td>
+    <td style="white-space:nowrap;color:var(--accent);font-weight:600;text-align:right">$${Math.round(Number(r.costo_lote)).toLocaleString('es-CL')}</td>
+    <td style="white-space:nowrap;color:#16a34a;font-weight:600;text-align:right">$${Math.round(Number(r.venta_lote)).toLocaleString('es-CL')}</td>
   </tr>`).join('');
   document.getElementById('prod-prev').disabled = prodPage <= 1;
   document.getElementById('prod-next').disabled = prodPage >= totalPages;
   document.getElementById('prod-page-info').textContent = `Página ${prodPage} de ${totalPages} (${prodData.length} registros)`;
+}
+
+function openEliminarProdModal() {
+  document.getElementById('prod-eliminar-input').value = '';
+  document.getElementById('modal-eliminar-prod').classList.add('open');
+  document.getElementById('prod-eliminar-input').focus();
+}
+
+async function eliminarProduccionCodigo() {
+  const input = document.getElementById('prod-eliminar-input');
+  const codigo = parseInt(input.value);
+  if (!codigo) { showAlert('Ingresa un codigo valido.'); return; }
+  const registro = prodData.find(r => r.codigo === codigo);
+  if (!registro) { showAlert('No existe un registro con codigo ' + codigo + '.'); return; }
+  closeModal('modal-eliminar-prod');
+  const bg = document.getElementById('modal-dialog');
+  const modal = bg.querySelector('.modal');
+  const icon = bg.querySelector('svg');
+  modal.style.borderColor = '#dc2626';
+  modal.style.boxShadow = '0 0 20px rgba(220,38,38,.3)';
+  icon.style.stroke = '#dc2626';
+  const ok = await showConfirm('Eliminar el registro codigo ' + codigo + ' (' + (registro.receta_nombre || '') + ')? Esta accion no se puede deshacer.');
+  modal.style.borderColor = '#eab308';
+  modal.style.boxShadow = '0 0 20px rgba(234,179,8,.3)';
+  icon.style.stroke = '#eab308';
+  if (!ok) return;
+  const { error } = await supa.from('produccion').delete().eq('codigo', codigo);
+  if (error) { showAlert('Error al eliminar: ' + error.message); return; }
+  prodData = prodData.filter(r => r.codigo !== codigo);
+  renderProdPage();
+  showAlert('Registro codigo ' + codigo + ' eliminado correctamente.');
+}
+
+async function buildVentas() {
+  const sel = document.getElementById('vta-receta');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Seleccionar...</option>' + recipes.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
+  const now = new Date();
+  if (!document.getElementById('vta-fecha').value) document.getElementById('vta-fecha').value = now.toISOString().slice(0, 10);
+  if (!document.getElementById('vta-hora').value) document.getElementById('vta-hora').value = now.toTimeString().slice(0, 5);
+  const { data, error } = await supa.from('ventas').select('*').order('cod_vta', { ascending: false });
+  const tbody = document.getElementById('vta-table');
+  const empty = document.getElementById('vta-empty');
+  if (error) { tbody.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Error: ' + error.message; return; }
+  if (!data || data.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = data.map(r => `<tr>
+    <td style="font-weight:600">${r.cod_vta}</td>
+    <td>${r.receta || '-'}</td>
+    <td style="white-space:nowrap">${r.fecha ? r.fecha.slice(0, 10) : '-'}</td>
+    <td>${r.hora ? r.hora.slice(0, 5) : '-'}</td>
+    <td>${r.cantidad}</td>
+    <td style="color:var(--accent);font-weight:600;text-align:right">$${Math.round(Number(r.valor)).toLocaleString('es-CL')}</td>
+    <td>${r.pago || '-'}</td>
+    <td>${r.nombre_cliente || '-'}</td>
+    <td>${r.celular || '-'}</td>
+    <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.observaciones || '-'}</td>
+  </tr>`).join('');
+}
+
+async function autoCalcValor() {
+  const receta = document.getElementById('vta-receta').value;
+  const cantidad = parseInt(document.getElementById('vta-cant').value) || 1;
+  const valorInput = document.getElementById('vta-valor');
+  if (!receta) return;
+  const { data } = await supa.from('produccion')
+    .select('venta_unitario')
+    .eq('receta_nombre', receta)
+    .order('codigo', { ascending: false })
+    .limit(1);
+  if (data && data.length > 0 && data[0].venta_unitario) {
+    valorInput.value = (data[0].venta_unitario * cantidad).toFixed(0);
+  }
+}
+
+async function saveVenta() {
+  const receta = document.getElementById('vta-receta').value;
+  if (!receta) { showAlert('Selecciona una receta.'); return; }
+  const fecha = document.getElementById('vta-fecha').value;
+  if (!fecha) { showAlert('Ingresa una fecha.'); return; }
+  const hora = document.getElementById('vta-hora').value || new Date().toTimeString().slice(0, 5);
+  const cantidad = parseInt(document.getElementById('vta-cant').value) || 1;
+  const valor = parseFloat(document.getElementById('vta-valor').value) || 0;
+  if (valor <= 0) { showAlert('Ingresa un valor valido.'); return; }
+  const pago = document.getElementById('vta-pago').value;
+  const nombre_cliente = document.getElementById('vta-cliente').value.trim();
+  const celular = document.getElementById('vta-celular').value.trim();
+  const observaciones = document.getElementById('vta-obs').value.trim();
+  const ok = await showConfirm('Guardar venta de ' + receta + ' por $' + Math.round(valor).toLocaleString('es-CL') + '?');
+  if (!ok) return;
+  const { error } = await supa.from('ventas').insert({
+    receta, fecha, hora, cantidad, valor, pago,
+    nombre_cliente, celular, observaciones,
+  });
+  if (error) { showAlert('Error al guardar: ' + error.message); return; }
+  document.getElementById('vta-receta').value = '';
+  document.getElementById('vta-valor').value = '';
+  document.getElementById('vta-cliente').value = '';
+  document.getElementById('vta-celular').value = '';
+  document.getElementById('vta-obs').value = '';
+  showAlert('Venta guardada correctamente.');
+  buildVentas();
 }
 
 function goEditRecipeFromSim() {
@@ -2047,6 +2248,7 @@ function nav(page, el) {
   if (page === 'categorias') buildCatTable();
   if (page === 'simulate')   simulate();
   if (page === 'produccion') buildProduccion();
+  if (page === 'ventas') buildVentas();
   closeMobileMenu();
 }
 
