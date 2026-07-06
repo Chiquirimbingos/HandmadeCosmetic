@@ -251,6 +251,7 @@
   .form-control:hover { border-color: var(--text-light); }
   .form-control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(31,122,140,.16); }
   .form-control:invalid:not(:placeholder-shown) { border-color: var(--danger); }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.8) sepia(1) hue-rotate(150deg) saturate(4); cursor: pointer; }
   .form-hint { font-size: 11px; color: var(--text-light); margin-top: 2px; }
   .form-section { margin-bottom: 1.25rem; }
   .form-section-title {
@@ -624,7 +625,12 @@
     <!-- ========== COSTOS ========== -->
     <div class="page" id="page-simulate">
       <div class="page-header">
-        <h2>Costo</h2>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <button class="btn" onclick="nav('recipes', null)" style="padding:.25rem .5rem;font-size:14px;line-height:1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2 style="margin:0">Costo</h2>
+        </div>
         <p>Desglose de costos por receta.</p>
       </div>
       <div class="card">
@@ -739,11 +745,11 @@
           <div style="display:flex;gap:.75rem;align-items:end;flex-wrap:wrap;margin-bottom:1rem">
             <div class="form-group" style="flex:0 0 auto;margin-bottom:0">
               <label>Desde</label>
-              <input type="date" class="form-control" id="prod-desde" style="font-size:13px">
+              <input type="date" class="form-control" id="prod-desde" style="font-size:13px;color-scheme:dark">
             </div>
             <div class="form-group" style="flex:0 0 auto;margin-bottom:0">
               <label>Hasta</label>
-              <input type="date" class="form-control" id="prod-hasta" style="font-size:13px">
+              <input type="date" class="form-control" id="prod-hasta" style="font-size:13px;color-scheme:dark">
             </div>
             <button class="btn btn-primary" onclick="buildProduccion()" style="font-size:12px;padding:.35rem .9rem">Filtrar</button>
             <button class="btn" onclick="document.getElementById('prod-desde').value='';document.getElementById('prod-hasta').value='';buildProduccion()" style="font-size:12px;padding:.35rem .9rem">Limpiar</button>
@@ -764,6 +770,11 @@
               </thead>
               <tbody id="prod-table"></tbody>
             </table>
+          </div>
+          <div id="prod-pagination" style="display:flex;align-items:center;justify-content:center;gap:.75rem;margin-top:.75rem">
+            <button class="btn" id="prod-prev" onclick="prodPage--;renderProdPage()" style="font-size:12px;padding:.3rem .7rem">Anterior</button>
+            <span id="prod-page-info" style="font-size:13px;color:var(--text-muted)"></span>
+            <button class="btn" id="prod-next" onclick="prodPage++;renderProdPage()" style="font-size:12px;padding:.3rem .7rem">Siguiente</button>
           </div>
           <p id="prod-empty" style="text-align:center;color:var(--text-muted);font-size:13px;padding:2rem 0;display:none">Sin registros de producción.</p>
         </div>
@@ -949,7 +960,7 @@
     <div class="form-grid">
       <div class="form-group" style="grid-column:1/-1">
         <label>Nombre de la receta</label>
-        <input type="text" class="form-control" id="rec-name" placeholder="Ej. Jabón de romero y arcilla">
+        <input type="text" class="form-control" id="rec-name" placeholder="Ej. Jabón de romero y arcilla" style="color:#a78bfa;font-weight:600">
       </div>
       <div class="form-group">
         <label>Tipo de producto</label>
@@ -968,7 +979,7 @@
     <div id="recipe-filter-wrap" style="display:flex;gap:6px;align-items:center;margin-bottom:.5rem">
       <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">Filtrar:</span>
       <select class="form-control" id="recipe-cat-filter" style="flex:1"></select>
-      <button class="btn" onclick="addRecipeIngRow()" style="white-space:nowrap;flex-shrink:0">
+      <button class="btn btn-primary" onclick="addRecipeIngRow()" style="white-space:nowrap;flex-shrink:0">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Agregar ingrediente
       </button>
@@ -984,6 +995,17 @@
     </div>
   </div>
 </div>
+
+  <!-- Custom dialog with yellow border -->
+  <div class="modal-bg" id="modal-dialog">
+    <div class="modal" style="max-width:400px;border:2px solid #eab308;box-shadow:0 0 20px rgba(234,179,8,.3)">
+      <div style="display:flex;align-items:start;gap:.75rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" width="28" height="28" style="flex-shrink:0;margin-top:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <p id="modal-dialog-msg" style="margin:0;font-size:14px;line-height:1.5;flex:1"></p>
+      </div>
+      <div id="modal-dialog-btns" style="display:flex;gap:.5rem;justify-content:end;margin-top:1rem"></div>
+    </div>
+  </div>
 
 </div><!-- /#app-root -->
 
@@ -1003,6 +1025,9 @@ let categorias = [];
 let productos = [];
 let prodFilter = 'all';
 let catFilter = 'all';
+let prodData = [];
+let prodPage = 1;
+const prodPageSize = 6;
 let editingRecipeId = null;
 
 function fmtMoney(n) {
@@ -1679,17 +1704,48 @@ function simulate() {
   btn.dataset.rend = recipe.yield;
 }
 
+function showConfirm(msg) {
+  return new Promise(resolve => {
+    const bg = document.getElementById('modal-dialog');
+    document.getElementById('modal-dialog-msg').textContent = msg;
+    const btns = document.getElementById('modal-dialog-btns');
+    btns.innerHTML = `
+      <button class="btn" id="dialog-cancel" style="font-size:12px;padding:.35rem .9rem">Cancelar</button>
+      <button class="btn btn-primary" id="dialog-ok" style="font-size:12px;padding:.35rem .9rem">Aceptar</button>`;
+    const done = ok => { bg.classList.remove('open'); resolve(ok); };
+    bg.classList.add('open');
+    bg.onclick = e => { if (e.target === bg) done(false); };
+    document.getElementById('dialog-ok').onclick = () => done(true);
+    document.getElementById('dialog-cancel').onclick = () => done(false);
+  });
+}
+
+function showAlert(msg) {
+  return new Promise(resolve => {
+    const bg = document.getElementById('modal-dialog');
+    document.getElementById('modal-dialog-msg').textContent = msg;
+    const btns = document.getElementById('modal-dialog-btns');
+    btns.innerHTML = `<button class="btn btn-primary" id="dialog-ok" style="font-size:12px;padding:.35rem .9rem">Aceptar</button>`;
+    const done = () => { bg.classList.remove('open'); resolve(); };
+    bg.classList.add('open');
+    bg.onclick = e => { if (e.target === bg) done(); };
+    document.getElementById('dialog-ok').onclick = done;
+  });
+}
+
 async function grabarCosto() {
   const btn = document.getElementById('cs-grabar');
   const recipeId = btn.dataset.recipeId;
-  if (!recipeId) { alert('Selecciona una receta primero.'); return; }
+  if (!recipeId) { showAlert('Selecciona una receta primero.'); return; }
   const recipeName = btn.dataset.recipeName || document.getElementById('sim-recipe').selectedOptions[0]?.textContent || '';
   const costoLote = parseFloat(btn.dataset.costoLote);
   const ventaLote = parseFloat(btn.dataset.ventaLote);
   const costoUnit = parseFloat(btn.dataset.costoUnit);
   const ventaUnit = parseFloat(btn.dataset.ventaUnit);
   const rend = parseInt(btn.dataset.rend);
-  if (!rend) { alert('La receta no tiene rendimiento.'); return; }
+  if (!rend) { showAlert('Error: La receta no tiene rendimiento.'); return; }
+  const ok = await showConfirm('Confirma que deseas guardar este registro en la base de Producción?');
+  if (!ok) return;
   const now = new Date();
   const fecha = now.toISOString().slice(0, 10);
   const hora = now.toTimeString().slice(0, 8);
@@ -1704,25 +1760,41 @@ async function grabarCosto() {
     costo_unitario: costoUnit,
     venta_unitario: ventaUnit,
   });
-  if (error) { alert('Error al guardar costo: ' + error.message); return; }
-  alert('Costo guardado correctamente.');
+  if (error) { showAlert('Error al guardar: ' + error.message); return; }
+  showAlert('Costo guardado correctamente.');
 }
 
 async function buildProduccion() {
   const tbody = document.getElementById('prod-table');
   const empty = document.getElementById('prod-empty');
+  const pagination = document.getElementById('prod-pagination');
   const desde = document.getElementById('prod-desde').value;
   const hasta = document.getElementById('prod-hasta').value;
   let query = supa.from('produccion').select('*').order('created_at', { ascending: false });
   if (desde) query = query.gte('fecha', desde);
   if (hasta) query = query.lte('fecha', hasta);
   const { data, error } = await query;
-  if (error) { tbody.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Error al cargar: ' + error.message; return; }
-  if (!data || data.length === 0) {
-    tbody.innerHTML = ''; empty.style.display = 'block'; return;
+  if (error) { tbody.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Error al cargar: ' + error.message; pagination.style.display = 'none'; return; }
+  prodData = data || [];
+  prodPage = 1;
+  renderProdPage();
+}
+
+function renderProdPage() {
+  const tbody = document.getElementById('prod-table');
+  const empty = document.getElementById('prod-empty');
+  const pagination = document.getElementById('prod-pagination');
+  const totalPages = Math.max(1, Math.ceil(prodData.length / prodPageSize));
+  if (prodPage < 1) prodPage = 1;
+  if (prodPage > totalPages) prodPage = totalPages;
+  if (prodData.length === 0) {
+    tbody.innerHTML = ''; empty.style.display = 'block'; pagination.style.display = 'none'; return;
   }
   empty.style.display = 'none';
-  tbody.innerHTML = data.map(r => `<tr>
+  pagination.style.display = 'flex';
+  const start = (prodPage - 1) * prodPageSize;
+  const pageData = prodData.slice(start, start + prodPageSize);
+  tbody.innerHTML = pageData.map(r => `<tr>
     <td style="white-space:nowrap">${r.receta_nombre || '-'}</td>
     <td style="white-space:nowrap">${r.fecha ? r.fecha.slice(0, 10) : '-'}</td>
     <td style="white-space:nowrap">${r.hora ? r.hora.slice(0, 5) : '-'}</td>
@@ -1732,6 +1804,9 @@ async function buildProduccion() {
     <td style="white-space:nowrap;color:var(--accent)">$${Math.round(Number(r.costo_unitario)).toLocaleString('es-CL')}</td>
     <td style="white-space:nowrap;color:#16a34a">$${Math.round(Number(r.venta_unitario)).toLocaleString('es-CL')}</td>
   </tr>`).join('');
+  document.getElementById('prod-prev').disabled = prodPage <= 1;
+  document.getElementById('prod-next').disabled = prodPage >= totalPages;
+  document.getElementById('prod-page-info').textContent = `Página ${prodPage} de ${totalPages} (${prodData.length} registros)`;
 }
 
 function goEditRecipeFromSim() {
@@ -1819,10 +1894,20 @@ function editRecipe(id) {
 }
 
 async function deleteRecipe(id) {
-  if (!confirm('¿Eliminar esta receta y todos sus ingredientes? Esta acción no se puede deshacer.')) return;
+  const bg = document.getElementById('modal-dialog');
+  const modal = bg.querySelector('.modal');
+  const icon = bg.querySelector('svg');
+  modal.style.borderColor = '#dc2626';
+  modal.style.boxShadow = '0 0 20px rgba(220,38,38,.3)';
+  icon.style.stroke = '#dc2626';
+  const ok = await showConfirm('¿Eliminar esta receta y todos sus ingredientes? Esta acción no se puede deshacer.');
+  modal.style.borderColor = '#eab308';
+  modal.style.boxShadow = '0 0 20px rgba(234,179,8,.3)';
+  icon.style.stroke = '#eab308';
+  if (!ok) return;
   await supa.from('receta_ingredientes').delete().eq('receta_id', id);
   const { error } = await supa.from('recetas').delete().eq('id', id);
-  if (error) { alert('Error al eliminar: ' + error.message); return; }
+  if (error) { showAlert('Error al eliminar: ' + error.message); return; }
   await loadData();
   buildRecipes();
   buildDashboard();
@@ -1948,9 +2033,10 @@ async function saveRecipe() {
 // UTILS
 // ============================================================
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
+document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', e => { if (e.target === m && m.id !== 'modal-dialog') m.classList.remove('open'); }));
 
 function nav(page, el) {
+  if (page !== 'edit-receta' && window._editRecipeRestore) window._editRecipeRestore();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
