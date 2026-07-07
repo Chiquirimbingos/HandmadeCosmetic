@@ -1007,24 +1007,31 @@
 
 <!-- ========== MODAL: Categoría ========== -->
 <div class="modal-bg" id="modal-categoria">
-  <div class="modal" style="width:440px">
+  <div class="modal" style="width:620px">
     <h3 id="modal-cat-title">Nueva categoría</h3>
     <input type="hidden" id="cat-id">
-    <div class="form-group">
-      <label>Categoría (grupo)</label>
-      <div style="display:flex;gap:4px">
-        <select class="form-control" id="cat-grupo" style="flex:1"></select>
-        <button type="button" class="btn" style="padding:.2rem .5rem;font-size:14px;line-height:1" onclick="quickAddCatGroup()" title="Nueva categoría">+</button>
+    <div style="display:flex;gap:.75rem">
+      <div class="form-group" style="flex:1">
+        <label>Categoría (grupo)</label>
+        <div style="display:flex;gap:4px">
+          <select class="form-control" id="cat-grupo" style="flex:1"></select>
+          <button type="button" class="btn" style="padding:.2rem .5rem;font-size:14px;line-height:1" onclick="quickAddCatGroup()" title="Nueva categoría">+</button>
+        </div>
       </div>
-    </div>
-    <div class="form-group" style="margin-top:.5rem">
-      <label>Nombre</label>
-      <input type="text" class="form-control" id="cat-name" placeholder="Ej. Aceite de Almendra, Fragancia de Lavanda" autocomplete="off">
+      <div class="form-group" style="flex:1">
+        <label>Nombre</label>
+        <input type="text" class="form-control" id="cat-name" placeholder="Ej. Aceite de Almendra" autocomplete="off">
+      </div>
     </div>
     <div class="form-group" style="margin-top:.5rem">
       <label>Tipo de producto</label>
       <input type="text" class="form-control" id="cat-tipo" placeholder="Ej. Insumo, Empaque, Etiquetas" autocomplete="off" oninput="updateCatGrupoOptions()">
       <span class="form-hint" style="font-size:11px;color:var(--text-muted);margin-top:3px;display:block">Agrupa los nombres por tipo de producto.</span>
+    </div>
+    <div class="form-group" style="margin-top:.5rem">
+      <label style="color:#eab308;font-weight:600">Observación</label>
+      <textarea class="form-control" id="cat-obs" rows="3" placeholder="Notas adicionales..." autocomplete="off" style="resize:vertical"></textarea>
+      <span class="form-hint" style="font-size:11px;color:var(--text-muted);margin-top:3px;display:block">Notas visibles al seleccionar esta categoría.</span>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-categoria')">Cancelar</button>
@@ -1191,13 +1198,31 @@ async function loadData() {
       .from('categorias')
       .select('*')
       .order('nombre');
-    if (!e3) categorias = cats;
+    if (e3) {
+      console.warn('Error al ordenar categorias por nombre, intentando sin orden:', e3.message);
+      const { data: cats2, error: e3b } = await supa.from('categorias').select('*');
+      if (e3b) {
+        console.error('Error al cargar categorias:', e3b.message);
+        categorias = [];
+      } else if (cats2) {
+        categorias = cats2;
+      }
+    } else if (cats) {
+      categorias = cats;
+    }
+    console.log('Categorias cargadas:', JSON.stringify(categorias?.length > 0 ? categorias.slice(0, 2) : [], null, 2));
+    console.log('Categorias IDs disponibles:', JSON.stringify(categorias.map(c => c.id)));
 
     const { data: prods, error: e1 } = await supa
       .from('productos')
       .select('*')
       .order('nombre');
     if (e1) throw e1;
+    const prodsSinCat = (prods || []).filter(r => !categorias.find(c => c.id == r.categoria_id));
+    if (prodsSinCat.length > 0) {
+      console.warn('Productos sin categoría resuelta:', prodsSinCat.length, 'de', (prods||[]).length);
+      console.warn('categoria_id en prods sin cat:', JSON.stringify(prodsSinCat.map(r => r.categoria_id)));
+    }
     productos = (prods || []).map(row => {
       const cat = categorias.find(c => c.id == row.categoria_id);
       return {
@@ -1621,7 +1646,7 @@ function openCatModal(id) {
   updateCatGrupoOptions();
   document.getElementById('cat-grupo').value = c?.categoria || '';
   document.getElementById('cat-name').value = c?.nombre || '';
-  document.getElementById('cat-grupo').disabled = !!id;
+  document.getElementById('cat-obs').value = c?.observacion || '';
   document.getElementById('cat-tipo').disabled = !!id;
   document.getElementById('cat-name').disabled = false;
   if (id) document.getElementById('cat-name').focus();
@@ -1676,7 +1701,8 @@ async function saveCat() {
   const tipo_producto = document.getElementById('cat-tipo').value;
   if (!nombre || !categoria) { alert('Completa Categoría y Nombre.'); return; }
 
-  const payload = { categoria, nombre, tipo_producto };
+  const observacion = document.getElementById('cat-obs').value.trim();
+  const payload = { categoria, nombre, tipo_producto, observacion };
 
   if (id) {
     const { error } = await supa.from('categorias').update(payload).eq('id', id);
