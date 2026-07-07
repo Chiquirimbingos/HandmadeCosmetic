@@ -182,7 +182,7 @@
   .card:hover { border-top-color: var(--accent); box-shadow: var(--shadow); transform: translateY(-2px); }
   .card-header {
     padding: 1.1rem 1.5rem; border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; align-items: center; justify-content: space-between; gap: .75rem;
   }
   .card-header h3 { font-family: var(--font-heading); font-size: 16px; font-weight: 600; }
   .card-body { padding: 1.25rem 1.5rem; }
@@ -792,12 +792,20 @@
         <p>Registro de ventas.</p>
       </div>
       <div class="card">
-        <div class="card-header"><h3>Nueva venta</h3></div>
+        <div class="card-header">
+          <h3>Nueva venta</h3>
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <span style="font-size:11px;color:#a78bfa;font-weight:500">Revisi&oacute;n Stock Recetas</span>
+            <button class="btn" onclick="exportStockExcel()" style="font-size:12px;padding:.3rem .7rem;background:#1d6f42;color:#fff;border-color:#1d6f42">Excel</button>
+            <button class="btn" onclick="exportStockPDF()" style="font-size:12px;padding:.3rem .7rem;background:#c0392b;color:#fff;border-color:#c0392b">PDF</button>
+          </div>
+        </div>
         <div class="card-body">
           <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr">
             <div class="form-group">
               <label>Receta</label>
               <select class="form-control" id="vta-receta" onchange="autoCalcValor()"><option value="">Seleccionar...</option></select>
+              <span id="vta-stock" style="display:none;font-size:12px;margin-top:3px;color:var(--accent);font-weight:600"></span>
             </div>
             <div class="form-group">
               <label>Fecha</label>
@@ -840,7 +848,10 @@
         </div>
       </div>
       <div class="card" style="margin-top:1rem">
-        <div class="card-header"><h3>Historial de ventas</h3></div>
+        <div class="card-header">
+          <h3>Historial de ventas</h3>
+          <button class="btn" onclick="document.getElementById('modal-eliminar-vta').classList.add('open')" style="font-size:12px;padding:.3rem .7rem;background:var(--danger);color:#fff;border-color:var(--danger)">Eliminar</button>
+        </div>
         <div class="card-body" style="padding:0">
           <div style="overflow-x:auto">
             <table>
@@ -862,6 +873,11 @@
             </table>
           </div>
           <p id="vta-empty" style="text-align:center;color:var(--text-muted);font-size:13px;padding:2rem 0;display:none">Sin ventas registradas.</p>
+          <div id="vta-pagination" class="pagination" style="display:none;justify-content:center;align-items:center;gap:.5rem;padding:.6rem 0">
+            <button class="btn" id="vta-prev-btn" onclick="vtaPage--;renderVentasPage()" style="font-size:12px;padding:.25rem .7rem">&larr; Anterior</button>
+            <span id="vta-page-info" style="font-size:12px;color:var(--text-muted)"></span>
+            <button class="btn" id="vta-next-btn" onclick="vtaPage++;renderVentasPage()" style="font-size:12px;padding:.25rem .7rem">Siguiente &rarr;</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1107,6 +1123,21 @@
     </div>
   </div>
 
+  <!-- Modal eliminar venta por codigo -->
+  <div class="modal-bg" id="modal-eliminar-vta">
+    <div class="modal" style="max-width:380px;border:2px solid var(--danger);box-shadow:0 0 20px rgba(220,38,38,.3)">
+      <h3 style="margin:0 0 1rem;font-size:16px">Eliminar venta</h3>
+      <div class="form-group" style="margin-bottom:1rem">
+        <label>Ingresa el codigo de la venta a eliminar</label>
+        <input type="number" class="form-control" id="vta-eliminar-input" placeholder="Ej. 1" min="1" style="font-size:14px">
+      </div>
+      <div style="display:flex;gap:.5rem;justify-content:end">
+        <button class="btn" onclick="closeModal('modal-eliminar-vta')" style="font-size:12px;padding:.35rem .9rem">Cancelar</button>
+        <button class="btn" onclick="eliminarVentaCodigo()" style="font-size:12px;padding:.35rem .9rem;background:var(--danger);color:#fff;border-color:var(--danger)">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /#app-root -->
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -1128,6 +1159,9 @@ let catFilter = 'all';
 let prodData = [];
 let prodPage = 1;
 const prodPageSize = 6;
+let vtaData = [];
+let vtaPage = 0;
+const vtaPageSize = 10;
 let editingRecipeId = null;
 
 function fmtMoney(n) {
@@ -1939,20 +1973,21 @@ async function eliminarProduccionCodigo() {
   showAlert('Registro codigo ' + codigo + ' eliminado correctamente.');
 }
 
-async function buildVentas() {
-  const sel = document.getElementById('vta-receta');
-  const current = sel.value;
-  sel.innerHTML = '<option value="">Seleccionar...</option>' + recipes.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
-  const now = new Date();
-  if (!document.getElementById('vta-fecha').value) document.getElementById('vta-fecha').value = now.toISOString().slice(0, 10);
-  if (!document.getElementById('vta-hora').value) document.getElementById('vta-hora').value = now.toTimeString().slice(0, 5);
-  const { data, error } = await supa.from('ventas').select('*').order('cod_vta', { ascending: false });
+function renderVentasPage() {
   const tbody = document.getElementById('vta-table');
   const empty = document.getElementById('vta-empty');
-  if (error) { tbody.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Error: ' + error.message; return; }
-  if (!data || data.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  const pagination = document.getElementById('vta-pagination');
+  if (vtaData.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    pagination.style.display = 'none';
+    return;
+  }
   empty.style.display = 'none';
-  tbody.innerHTML = data.map(r => `<tr>
+  pagination.style.display = 'flex';
+  const start = vtaPage * vtaPageSize;
+  const pageData = vtaData.slice(start, start + vtaPageSize);
+  tbody.innerHTML = pageData.map(r => `<tr>
     <td style="font-weight:600">${r.cod_vta}</td>
     <td>${r.receta || '-'}</td>
     <td style="white-space:nowrap">${r.fecha ? r.fecha.slice(0, 10) : '-'}</td>
@@ -1964,21 +1999,88 @@ async function buildVentas() {
     <td>${r.celular || '-'}</td>
     <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.observaciones || '-'}</td>
   </tr>`).join('');
+  const totalPages = Math.ceil(vtaData.length / vtaPageSize);
+  document.getElementById('vta-page-info').textContent = 'Pagina ' + (vtaPage + 1) + ' de ' + totalPages;
+  document.getElementById('vta-prev-btn').disabled = vtaPage === 0;
+  document.getElementById('vta-next-btn').disabled = start + vtaPageSize >= vtaData.length;
+}
+
+async function buildVentas() {
+  const sel = document.getElementById('vta-receta');
+  sel.innerHTML = '<option value="">Seleccionar...</option>' + recipes.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
+  const now = new Date();
+  if (!document.getElementById('vta-fecha').value) document.getElementById('vta-fecha').value = now.toISOString().slice(0, 10);
+  if (!document.getElementById('vta-hora').value) document.getElementById('vta-hora').value = now.toTimeString().slice(0, 5);
+  const { data, error } = await supa.from('ventas').select('*').order('cod_vta', { ascending: false });
+  if (error) { document.getElementById('vta-table').innerHTML = ''; document.getElementById('vta-empty').style.display = 'block'; document.getElementById('vta-empty').textContent = 'Error: ' + error.message; return; }
+  vtaData = data || [];
+  vtaPage = 0;
+  renderVentasPage();
+}
+
+async function eliminarVentaCodigo() {
+  const input = document.getElementById('vta-eliminar-input');
+  const codigo = parseInt(input.value);
+  if (!codigo) { showAlert('Ingresa un codigo valido.'); return; }
+  const registro = vtaData.find(r => r.cod_vta === codigo);
+  if (!registro) { showAlert('No existe una venta con codigo ' + codigo + '.'); return; }
+  closeModal('modal-eliminar-vta');
+  const bg = document.getElementById('modal-dialog');
+  const modal = bg.querySelector('.modal');
+  const icon = bg.querySelector('svg');
+  modal.style.borderColor = '#dc2626';
+  modal.style.boxShadow = '0 0 20px rgba(220,38,38,.3)';
+  icon.style.stroke = '#dc2626';
+  const ok = await showConfirm('Eliminar venta codigo ' + codigo + ' (' + (registro.receta || '') + ')? Esta accion no se puede deshacer.');
+  modal.style.borderColor = '#eab308';
+  modal.style.boxShadow = '0 0 20px rgba(234,179,8,.3)';
+  icon.style.stroke = '#eab308';
+  if (!ok) return;
+  const { error } = await supa.from('ventas').delete().eq('cod_vta', codigo);
+  if (error) { showAlert('Error al eliminar: ' + error.message); return; }
+  vtaData = vtaData.filter(r => r.cod_vta !== codigo);
+  if (vtaPage > 0 && vtaPage * vtaPageSize >= vtaData.length) vtaPage--;
+  renderVentasPage();
+  showAlert('Venta codigo ' + codigo + ' eliminada correctamente.');
+  input.value = '';
 }
 
 async function autoCalcValor() {
-  const receta = document.getElementById('vta-receta').value;
+  const recetaNombre = document.getElementById('vta-receta').value;
   const cantidad = parseInt(document.getElementById('vta-cant').value) || 1;
   const valorInput = document.getElementById('vta-valor');
-  if (!receta) return;
-  const { data } = await supa.from('produccion')
-    .select('venta_unitario')
-    .eq('receta_nombre', receta)
-    .order('codigo', { ascending: false })
-    .limit(1);
-  if (data && data.length > 0 && data[0].venta_unitario) {
-    valorInput.value = (data[0].venta_unitario * cantidad).toFixed(0);
+  const stockSpan = document.getElementById('vta-stock');
+  if (!recetaNombre) { stockSpan.style.display = 'none'; return; }
+  const recipe = recipes.find(r => r.name === recetaNombre);
+  if (!recipe || !recipe.ingredients || recipe.ingredients.length === 0) return;
+  let totalVenta = 0;
+  for (const ri of recipe.ingredients) {
+    const prod = productos.find(p => p.id == ri.prodId);
+    if (!prod) continue;
+    const ventaUnidad = prod.cant > 0 ? prod.precioVenta / prod.cant : 0;
+    totalVenta += ri.qty * ventaUnidad;
   }
+  const ventaUnit = recipe.yield > 0 ? totalVenta / recipe.yield : 0;
+  if (ventaUnit > 0) {
+    valorInput.value = (ventaUnit * cantidad).toFixed(0);
+  } else {
+    const { data } = await supa.from('produccion')
+      .select('venta_unitario')
+      .eq('receta_nombre', recetaNombre)
+      .order('id', { ascending: false })
+      .limit(1);
+    if (data && data.length > 0 && data[0].venta_unitario) {
+      valorInput.value = (data[0].venta_unitario * cantidad).toFixed(0);
+    }
+  }
+  const { data: stockRow } = await supa.from('stock_recetas')
+    .select('stock')
+    .eq('receta_nombre', recetaNombre)
+    .maybeSingle();
+  const stock = stockRow ? stockRow.stock : 0;
+  stockSpan.textContent = 'Stock: ' + stock + ' u';
+  stockSpan.style.display = 'inline';
+  stockSpan.style.color = stock < cantidad ? 'var(--danger)' : 'var(--accent)';
 }
 
 async function saveVenta() {
@@ -1996,18 +2098,82 @@ async function saveVenta() {
   const observaciones = document.getElementById('vta-obs').value.trim();
   const ok = await showConfirm('Guardar venta de ' + receta + ' por $' + Math.round(valor).toLocaleString('es-CL') + '?');
   if (!ok) return;
-  const { error } = await supa.from('ventas').insert({
-    receta, fecha, hora, cantidad, valor, pago,
-    nombre_cliente, celular, observaciones,
+  const { data: rpcResult, error } = await supa.rpc('insertar_venta', {
+    p_receta: receta,
+    p_fecha: fecha,
+    p_hora: hora,
+    p_cantidad: cantidad,
+    p_valor: valor,
+    p_pago: pago,
+    p_nombre_cliente: nombre_cliente,
+    p_celular: celular,
+    p_observaciones: observaciones,
   });
   if (error) { showAlert('Error al guardar: ' + error.message); return; }
+  if (!rpcResult.ok) { showAlert(rpcResult.error); return; }
   document.getElementById('vta-receta').value = '';
+  document.getElementById('vta-cant').value = '1';
   document.getElementById('vta-valor').value = '';
   document.getElementById('vta-cliente').value = '';
   document.getElementById('vta-celular').value = '';
   document.getElementById('vta-obs').value = '';
-  showAlert('Venta guardada correctamente.');
+  document.getElementById('vta-stock').style.display = 'none';
+  showAlert('Venta guardada correctamente (Cod ' + rpcResult.cod_vta + ').');
   buildVentas();
+}
+
+async function exportStockExcel() {
+  try {
+    const { data, error } = await supa.from('stock_recetas').select('*').order('receta_nombre');
+    if (error || !data || data.length === 0) { showAlert('No hay datos de stock para exportar.'); return; }
+    const rows = [['Receta', 'Total Producido', 'Total Vendido', 'Stock Disponible']];
+    data.forEach(r => rows.push([r.receta_nombre, Number(r.total_producido), Number(r.total_vendido), Number(r.stock)]));
+    const csv = rows.map(row => row.map(cell => {
+      if (typeof cell === 'string' && (cell.includes(',') || cell.includes('"') || cell.includes('\n'))) return '"' + cell.replace(/"/g, '""') + '"';
+      return String(cell);
+    }).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'stock_recetas.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (e) { showAlert('Error al exportar Excel: ' + e.message); }
+}
+
+async function exportStockPDF() {
+  try {
+    const { data, error } = await supa.from('stock_recetas').select('*').order('receta_nombre');
+    if (error || !data || data.length === 0) { showAlert('No hay datos de stock para exportar.'); return; }
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write('<html><head><title>Stock de Recetas</title><style>');
+    doc.write('body{font-family:Arial,sans-serif;padding:2rem}h1{font-size:20px;margin-bottom:1rem}');
+    doc.write('table{width:100%;border-collapse:collapse;font-size:13px}');
+    doc.write('th,td{border:1px solid #ccc;padding:6px 10px;text-align:left}');
+    doc.write('th{background:#f0f0f0;font-weight:600}');
+    doc.write('td:nth-child(2),td:nth-child(3),td:nth-child(4){text-align:right}');
+    doc.write('th:nth-child(2),th:nth-child(3),th:nth-child(4){text-align:right}');
+    doc.write('.footer{margin-top:1rem;font-size:11px;color:#888}');
+    doc.write('</style></head><body>');
+    doc.write('<h1>Stock de Recetas</h1>');
+    doc.write('<table><thead><tr><th>Receta</th><th>Total Producido</th><th>Total Vendido</th><th>Stock Disponible</th></tr></thead><tbody>');
+    data.forEach(r => {
+      doc.write('<tr><td>' + r.receta_nombre + '</td><td>' + Number(r.total_producido) + '</td><td>' + Number(r.total_vendido) + '</td><td>' + Number(r.stock) + '</td></tr>');
+    });
+    doc.write('</tbody></table>');
+    doc.write('<div class="footer">Generado el ' + new Date().toLocaleDateString('es-CL') + '</div>');
+    doc.write('</body></html>');
+    doc.close();
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      setTimeout(() => document.body.removeChild(iframe), 500);
+    }, 500);
+  } catch (e) { showAlert('Error al exportar PDF: ' + e.message); }
 }
 
 function goEditRecipeFromSim() {
