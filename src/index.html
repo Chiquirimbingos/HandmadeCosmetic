@@ -1378,6 +1378,7 @@ function buildProductosTable() {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted)">Sin resultados.</td></tr>';
     return;
   }
+  data.sort((a, b) => (a.cat || '').localeCompare(b.cat || '') || (a.name || '').localeCompare(b.name || ''));
   tbody.innerHTML = data.map(p => {
     const st = getStatus(p);
     const costoLabel = p.tipo === 'Terminado' ? fmtMoney(p.costo) : fmtMoney(p.costo) + '/' + p.unit;
