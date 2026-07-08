@@ -251,7 +251,7 @@
   .form-control:hover { border-color: var(--text-light); }
   .form-control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(31,122,140,.16); }
   .form-control:invalid:not(:placeholder-shown) { border-color: var(--danger); }
-  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.8) sepia(1) hue-rotate(150deg) saturate(4); cursor: pointer; }
+  input[type="date"]::-webkit-calendar-picker-indicator { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23eab308' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E") center/contain no-repeat; filter: none; cursor: pointer; }
   .form-hint { font-size: 11px; color: var(--text-light); margin-top: 2px; }
   .form-section { margin-bottom: 1.25rem; }
   .form-section-title {
@@ -586,6 +586,19 @@
       </div>
       <div class="kpi-grid" id="kpi-grid"></div>
       <div id="alert-zone"></div>
+      <div class="card">
+        <div class="card-header"><h3 style="color:#eab308">Copias de seguridad de las tablas en formato CSV y Estructura SQL</h3></div>
+        <div class="card-body" style="display:flex;flex-wrap:wrap;gap:8px;padding:.75rem 1rem">
+          <button class="btn" onclick="backupTable('productos','*','productos')" style="font-size:12px;padding:.35rem .8rem">Productos</button>
+          <button class="btn" onclick="backupTable('categorias','*','categorias')" style="font-size:12px;padding:.35rem .8rem">Categorías</button>
+          <button class="btn" onclick="backupTable('recetas','*','recetas')" style="font-size:12px;padding:.35rem .8rem">Recetas</button>
+          <button class="btn" onclick="backupTable('receta_ingredientes','*','receta_ingredientes')" style="font-size:12px;padding:.35rem .8rem">Ingredientes</button>
+          <button class="btn" onclick="backupTable('produccion','*','produccion')" style="font-size:12px;padding:.35rem .8rem">Producción</button>
+          <button class="btn" onclick="backupTable('ventas','*','ventas')" style="font-size:12px;padding:.35rem .8rem">Ventas</button>
+          <button class="btn" onclick="backupAll()" style="font-size:12px;padding:.35rem .8rem;background:#1d6f42;color:#fff;border-color:#1d6f42">Exportar todo</button>
+          <button class="btn" onclick="backupStructure()" style="font-size:12px;padding:.35rem .8rem;background:#7c3aed;color:#fff;border-color:#7c3aed">Estructura</button>
+        </div>
+      </div>
       <div class="card">
         <div class="card-header"><h3>Capacidad de producción por receta</h3></div>
         <table>
@@ -1083,13 +1096,17 @@
       </div>
     </div>
     <hr class="divider">
-    <div class="form-section-title" style="margin-top:.5rem">Insumos por unidad producida</div>
+    <div class="form-section-title" style="margin-top:.5rem">Productos por unidad producida</div>
     <div id="recipe-filter-wrap" style="display:flex;gap:6px;align-items:center;margin-bottom:.5rem">
-      <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">Filtrar:</span>
-      <select class="form-control" id="recipe-cat-filter" style="flex:1"></select>
-      <button class="btn btn-primary" onclick="addRecipeIngRow()" style="white-space:nowrap;flex-shrink:0">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Agregar ingrediente
+      <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">F:</span>
+      <select class="form-control" id="recipe-cat-filter" style="flex:1;min-width:0"></select>
+      <button class="btn btn-primary" onclick="addRecipeIngRow('Insumo')" style="white-space:nowrap;flex-shrink:0;font-size:13px;padding:.3rem .5rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Insumo
+      </button>
+      <button class="btn btn-primary" onclick="addRecipeIngRow('Empaque')" style="white-space:nowrap;flex-shrink:0;font-size:13px;padding:.3rem .5rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Empaque
       </button>
     </div>
     <div id="recipe-ings-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:.75rem"></div>
@@ -2202,6 +2219,138 @@ async function exportStockPDF() {
   } catch (e) { showAlert('Error al exportar PDF: ' + e.message); }
 }
 
+function csvDownload(data, filename) {
+  const rows = data.map(row =>
+    Object.values(row).map(cell => {
+      const s = String(cell ?? '');
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }).join(',')
+  );
+  const csv = '\uFEFF' + rows.join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+  a.download = filename + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function backupTable(table, columns, label) {
+  try {
+    let res = await supa.from(table).select(columns).order('id', { ascending: true, nullsFirst: false });
+    if (res.error && res.error.message && res.error.message.includes('does not exist')) {
+      res = await supa.from(table).select(columns).order('cod_vta', { ascending: true, nullsFirst: false });
+    }
+    if (res.error) {
+      res = await supa.from(table).select(columns);
+    }
+    if (res.error) { showAlert('Error en ' + label + ': ' + res.error.message); return; }
+    if (!res.data || res.data.length === 0) { showAlert(label + ' está vacía.'); return; }
+    csvDownload(res.data, 'backup_' + label + '_' + new Date().toISOString().slice(0,10));
+  } catch (e) { showAlert('Error al respaldar ' + label + ': ' + e.message); }
+}
+
+async function backupAll() {
+  const tables = [
+    ['productos', '*', 'productos'],
+    ['categorias', '*', 'categorias'],
+    ['recetas', '*', 'recetas'],
+    ['receta_ingredientes', '*', 'receta_ingredientes'],
+    ['produccion', '*', 'produccion'],
+    ['ventas', '*', 'ventas'],
+  ];
+  for (const [table, columns, label] of tables) {
+    try {
+      const { data, error } = await supa.from(table).select(columns);
+      if (error) { showAlert('Error en ' + label + ': ' + error.message); continue; }
+      if (!data || data.length === 0) { continue; }
+      csvDownload(data, 'backup_' + label + '_' + new Date().toISOString().slice(0,10));
+      await new Promise(r => setTimeout(r, 300));
+    } catch (e) { showAlert('Error al respaldar ' + label + ': ' + e.message); }
+  }
+  showAlert('Exportación completa. Revisa tus descargas.');
+}
+
+async function backupStructure() {
+  try {
+    const tables = ['productos','categorias','recetas','receta_ingredientes','produccion','ventas'];
+    let sql = '-- Estructura generada el ' + new Date().toLocaleString('es-CL') + '\n\n';
+
+    for (const table of tables) {
+      let cols, pks;
+      try {
+        const r = await supa.schema('information_schema').from('columns')
+          .select('column_name, data_type, character_maximum_length, is_nullable, column_default, ordinal_position')
+          .eq('table_schema', 'public').eq('table_name', table)
+          .order('ordinal_position', { ascending: true });
+        cols = r.data; 
+        if (!r.error && r.data && r.data.length > 0) {
+          const pr = await supa.schema('information_schema').from('table_constraints')
+            .select('constraint_name')
+            .eq('table_schema', 'public').eq('table_name', table).eq('constraint_type', 'PRIMARY KEY');
+          if (pr.data && pr.data.length > 0) {
+            const kr = await supa.schema('information_schema').from('key_column_usage')
+              .select('column_name')
+              .eq('constraint_name', pr.data[0].constraint_name).eq('table_schema', 'public');
+            if (kr.data) pks = kr.data.map(k => k.column_name);
+          }
+        }
+      } catch (_) {}
+      if (!cols || cols.length === 0) {
+        try {
+          const url = supa.supabaseUrl + '/rest/v1/information_schema/columns?select=column_name,data_type,character_maximum_length,is_nullable,column_default,ordinal_position&table_schema=eq.public&table_name=eq.' + table + '&order=ordinal_position.asc';
+          const r2 = await fetch(url, { headers: { apikey: supa.supabaseKey, Authorization: 'Bearer ' + supa.supabaseKey } });
+          if (r2.ok) {
+            cols = await r2.json();
+          }
+        } catch (_) {}
+      }
+      if (!cols || cols.length === 0) {
+        sql += '-- No se pudo obtener estructura de ' + table + ' desde information_schema.\n';
+        sql += '-- Ejecutá esto en el SQL Editor de Supabase para crear un helper:\n\n';
+        sql += 'CREATE OR REPLACE FUNCTION public.get_table_ddl(tname text) RETURNS text AS $$;\n';
+        sql += 'DECLARE result text;\n';
+        sql += 'BEGIN\n';
+        sql += '  SELECT string_agg(column_name || $$ $$ || data_type || CASE WHEN is_nullable=$$NO$$ THEN $$ NOT NULL$$ ELSE $$$$ END, $$,\n$$ ORDER BY ordinal_position)\n';
+        sql += '  INTO result FROM information_schema.columns WHERE table_schema=$$public$$ AND table_name=tname;\n';
+        sql += '  RETURN $$CREATE TABLE $$ || tname || $$ ($$ || chr(10) || result || chr(10) || $$);$$;\n';
+        sql += 'END;\n';
+        sql += '$$ LANGUAGE plpgsql;\n';
+        sql += '-- Luego usá: SELECT public.get_table_ddl(\'' + table + '\');\n\n';
+        continue;
+      }
+      sql += 'CREATE TABLE IF NOT EXISTS public.' + table + ' (\n';
+      const lines = cols.map(c => {
+        let type = c.data_type;
+        if (type === 'character varying' && c.character_maximum_length) type = 'varchar(' + c.character_maximum_length + ')';
+        if (type === 'integer') type = 'integer';
+        if (type === 'text') type = 'text';
+        if (type === 'numeric') type = 'numeric';
+        if (type === 'double precision') type = 'double precision';
+        if (type === 'boolean') type = 'boolean';
+        if (type === 'timestamp without time zone') type = 'timestamp';
+        if (type === 'date') type = 'date';
+        if (type === 'time without time zone') type = 'time';
+        let line = '  "' + c.column_name + '" ' + type;
+        if (c.is_nullable === 'NO') line += ' NOT NULL';
+        if (c.column_default) line += ' DEFAULT ' + c.column_default;
+        if (pks && pks.length === 1 && pks[0] === c.column_name) line += ' PRIMARY KEY';
+        return line;
+      });
+      if (pks && pks.length > 1) lines.push('  PRIMARY KEY (' + pks.map(c => '"' + c + '"').join(', ') + ')');
+      sql += lines.join(',\n');
+      sql += '\n);\n\n';
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([sql], { type: 'text/plain;charset=utf-8;' }));
+    a.download = 'estructura_tablas_' + new Date().toISOString().slice(0,10) + '.sql';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showAlert('Estructura exportada correctamente. Si algunas tablas no se pudieron leer, el archivo contiene las instrucciones SQL para crear un helper en Supabase.');
+  } catch (e) {
+    showAlert('Error al exportar estructura: ' + e.message);
+  }
+}
+
 function goEditRecipeFromSim() {
   const recipeId = document.getElementById('sim-recipe').value;
   if (!recipeId) return;
@@ -2313,25 +2462,32 @@ function openAddRecipeModal(recipe) {
   document.getElementById('rec-type').value = recipe ? recipe.type : 'Jabón sólido';
   document.getElementById('rec-yield').value = recipe ? recipe.yield : '';
   recipeIngRows = recipe
-    ? recipe.ingredients.map(ri => ({ rowId: uid(), prodId: ri.prodId, qty: ri.qty, catFilter: '' }))
+    ? recipe.ingredients.map(ri => {
+        const prod = productos.find(p => p.id == ri.prodId);
+        const cat = prod ? categorias.find(c => c.id == prod.categoria_id) : null;
+        return { rowId: uid(), prodId: ri.prodId, qty: ri.qty, catFilter: '', tipo: cat?.tipo_producto || 'Insumo' };
+      })
     : [];
   const filterSel = document.getElementById('recipe-cat-filter');
+  const allGroups = [...new Set([...getCatGroups('Insumo'), ...getCatGroups('Empaque')])].sort();
   filterSel.innerHTML = '<option value="">Todas</option>' +
-    getCatGroups('Insumo').map(g => `<option value="${g}">${g}</option>`).join('');
+    allGroups.map(g => `<option value="${g}">${g}</option>`).join('');
   renderRecipeIngRows();
   document.getElementById('modal-recipe').classList.add('open');
 }
 
-function addRecipeIngRow() {
+function addRecipeIngRow(tipo) {
   const filterVal = document.getElementById('recipe-cat-filter').value;
+  const prodsTipo = productos.filter(p => categorias.find(c => c.id == p.categoria_id)?.tipo_producto === tipo);
   const filteredProds = filterVal
-    ? productos.filter(p => getCatGroup(p.categoria_id) === filterVal)
-    : productos;
+    ? prodsTipo.filter(p => getCatGroup(p.categoria_id) === filterVal)
+    : prodsTipo;
   recipeIngRows.push({
     rowId: uid(),
     prodId: '',
     qty: 1,
-    catFilter: filterVal
+    catFilter: filterVal,
+    tipo: tipo
   });
   renderRecipeIngRows();
 }
@@ -2339,12 +2495,13 @@ function addRecipeIngRow() {
 function renderRecipeIngRows() {
   const container = document.getElementById('recipe-ings-list');
   container.innerHTML = recipeIngRows.map((row, idx) => {
-    const filteredProds = row.catFilter
+    const tipo = row.tipo || 'Insumo';
+    const filteredProds = (row.catFilter
       ? productos.filter(p => getCatGroup(p.categoria_id) === row.catFilter)
-      : productos;
+      : productos).filter(p => categorias.find(c => c.id == p.categoria_id)?.tipo_producto === tipo);
     return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
       <select class="form-control" style="flex:1;min-width:160px;${!row.prodId ? 'color:#DC2626;font-weight:600' : ''}" onchange="recipeIngRows[${idx}].prodId=this.value;this.style.color='';this.style.fontWeight=''">
-        <option value="" disabled ${!row.prodId ? 'selected' : ''}>-- Seleccione un ingrediente --</option>
+        <option value="" disabled ${!row.prodId ? 'selected' : ''}>-- Seleccione un ${tipo} --</option>
         ${filteredProds.map(p => `<option value="${p.id}" ${p.id === row.prodId ? 'selected' : ''}>${p.name} (${p.tipo})</option>`).join('')}
       </select>
       <input type="number" class="form-control" style="width:80px;flex-shrink:0"
