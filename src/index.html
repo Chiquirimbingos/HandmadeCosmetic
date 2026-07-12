@@ -367,6 +367,12 @@
   #edit-receta-container #recipe-ings-list > div { gap: 10px; }
   #edit-receta-container #recipe-ings-list select { min-width: 200px; }
 
+  /* Contenedor inline para editar producto */
+  #edit-producto-container > .modal {
+    width: 100%; max-width: 100%; box-shadow: none; border: 1px solid var(--border);
+    border-radius: var(--radius); animation: none; max-height: none; padding: 1.5rem;
+  }
+
   /* ── Modal Producto ── */
   .modal-lg .modal { width: 760px; padding: 2rem; }
   .modal-lg .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
@@ -692,7 +698,15 @@
       <div id="edit-receta-container"></div>
     </div>
 
-    <!-- ========== PRODUCTOS (unificado: Terminados + Insumos + Empaques) ========== -->
+    <!-- ========== EDITAR PRODUCTO (inline, como card) ========== -->
+    <div class="page" id="page-edit-producto">
+      <div class="page-header">
+        <h2>Editar producto</h2>
+      </div>
+      <div id="edit-producto-container"></div>
+    </div>
+
+    <!-- ========== PRODUCTOS ========== -->
     <div class="page" id="page-productos">
       <div class="page-header">
         <h2>Productos</h2>
@@ -701,7 +715,6 @@
       <div class="actions-bar">
         <div class="tabs" id="prod-tabs">
           <div class="tab active" onclick="filterProductos('all', this)">Todos</div>
-          <div class="tab" onclick="filterProductos('Terminado', this)">Terminados</div>
           <div class="tab" onclick="filterProductos('Insumo', this)">Insumos</div>
           <div class="tab" onclick="filterProductos('Empaque', this)">Empaques</div>
         </div>
@@ -904,18 +917,14 @@
 </div>
 
 <!-- ========== MODAL: Producto (diseño profesional) ========== -->
-<div class="modal-bg modal-lg" id="modal-producto">
-  <div class="modal">
+<div class="modal-bg modal-lg" id="modal-producto" style="align-items:flex-start;padding-top:3vh">
+  <div class="modal" style="width:860px">
     <h3 id="modal-producto-title" style="font-size:18px;margin-bottom:1.25rem">Nuevo producto</h3>
     <input type="hidden" id="producto-id">
-    <input type="hidden" id="prod-tipo" value="Terminado">
+    <input type="hidden" id="prod-tipo" value="Insumo">
 
-    <div class="tipo-pills">
-      <label class="tipo-pill active" data-value="Terminado" onclick="selectTipo('Terminado', this)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-        Terminado
-      </label>
-      <label class="tipo-pill" data-value="Insumo" onclick="selectTipo('Insumo', this)">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:1.25rem">
+      <label class="tipo-pill active" data-value="Insumo" onclick="selectTipo('Insumo', this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7l8-4 8 4M4 7v10l8 4M4 7l8 4m0-4v10m8-10v10l-8 4"/></svg>
         Insumo
       </label>
@@ -923,96 +932,99 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18"/><path d="M9 3v18"/></svg>
         Empaque
       </label>
+      <button class="btn" onclick="volverAProductos()" style="margin-left:auto;font-size:13px;padding:.5rem .7rem;border:2px solid var(--accent);border-radius:var(--radius);background:var(--accent-bg);color:var(--accent-text);font-weight:600;cursor:pointer;transition:all var(--transition);display:flex;align-items:center;gap:6px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
+        Volver
+      </button>
     </div>
 
-    <!-- Categoría + Nombre -->
-    <div class="grid-3" style="margin-bottom:.85rem">
-      <div class="form-group">
+    <!-- Fila 1: Categoría + Nombre + Unidad -->
+    <div style="display:flex;gap:1rem;margin-bottom:1rem">
+      <div class="form-group" style="flex:2">
         <label>Categoría</label>
-        <div style="display:flex;gap:4px">
-          <select class="form-control" id="prod-cat" style="flex:1" onchange="updateProdNameOptions()"></select>
-        </div>
+        <select class="form-control" id="prod-cat" onchange="updateProdNameOptions()"></select>
       </div>
-      <div class="form-group" style="grid-column:span 2">
+      <div class="form-group" style="flex:3">
         <label>Nombre del producto</label>
         <select class="form-control" id="prod-name">
           <option value="">— Selecciona un nombre —</option>
         </select>
       </div>
-    </div>
-
-    <!-- Unidad -->
-    <div style="display:flex;gap:12px;align-items:center;margin-bottom:1rem;padding:.4rem 0">
-      <span style="font-size:12px;font-weight:600;color:var(--text-muted)">Unidad:</span>
-      <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer">
-        <input type="radio" name="prod-unit" value="g" checked> <span style="color:#eab308;font-weight:600">g</span> (gramos)
-      </label>
-      <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer">
-        <input type="radio" name="prod-unit" value="ml"> <span style="color:#eab308;font-weight:600">ml</span> (mililitros)
-      </label>
-      <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer">
-        <input type="radio" name="prod-unit" value="u"> <span style="color:#eab308;font-weight:600">u</span> (unidades)
-      </label>
-    </div>
-
-    <!-- Stock -->
-    <div class="section-card section-stock">
-      <div class="section-card-header">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-        Control de stock
-      </div>
-      <div class="grid-2">
-        <div class="form-group field-stock">
-          <label>Stock actual</label>
-          <input type="number" class="form-control" id="prod-stock" placeholder="0" min="0">
-        </div>
-        <div class="form-group field-stock">
-          <label>Stock mínimo (alerta)</label>
-          <input type="number" class="form-control" id="prod-min" placeholder="0" min="0">
+      <div class="form-group" style="flex:1;min-width:130px">
+        <label>Unidad</label>
+        <div style="display:flex;gap:6px;margin-top:2px">
+          <label style="display:flex;align-items:center;gap:3px;font-size:13px;cursor:pointer;padding:4px 6px;border:1px solid var(--border);border-radius:6px;background:var(--surface-alt)">
+            <input type="radio" name="prod-unit" value="g" checked> <span style="color:#eab308;font-weight:600">g</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:3px;font-size:13px;cursor:pointer;padding:4px 6px;border:1px solid var(--border);border-radius:6px;background:var(--surface-alt)">
+            <input type="radio" name="prod-unit" value="ml"> <span style="color:#eab308;font-weight:600">ml</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:3px;font-size:13px;cursor:pointer;padding:4px 6px;border:1px solid var(--border);border-radius:6px;background:var(--surface-alt)">
+            <input type="radio" name="prod-unit" value="u"> <span style="color:#eab308;font-weight:600">u</span>
+          </label>
         </div>
       </div>
     </div>
 
-    <!-- Valor y precio -->
-    <div class="section-card section-pricing">
-      <div class="section-card-header">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M21 12c-4.5 0-6.5-4-9-4s-4.5 4-9 4 4.5 4 9 4 4.5-4 9-4z"/></svg>
-        <span id="prod-pricing-title">Valor y precio</span>
+    <!-- Fila 2: Stock + Precio lado a lado -->
+    <div style="display:flex;gap:1rem;margin-bottom:1rem">
+      <div class="section-card section-stock" style="flex:1;margin:0">
+        <div class="section-card-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Control de stock
+        </div>
+        <div style="display:flex;gap:.75rem">
+          <div class="form-group field-stock" style="flex:1;margin:0">
+            <label>Stock actual</label>
+            <input type="number" class="form-control" id="prod-stock" placeholder="0" min="0">
+          </div>
+          <div class="form-group field-stock" style="flex:1;margin:0">
+            <label>Stock mínimo</label>
+            <input type="number" class="form-control" id="prod-min" placeholder="0" min="0">
+          </div>
+        </div>
       </div>
-      <div class="grid-3">
-        <div class="form-group field-costo">
-          <label id="lbl-prod-costo">Valor del producto ($)</label>
-          <input type="number" class="form-control" id="prod-costo" placeholder="3000" min="0" step="any" oninput="calcProductoPrecio()">
-          <span class="form-hint" id="hint-prod-costo">Precio de compra de esta presentación</span>
+
+      <div class="section-card section-pricing" style="flex:2;margin:0">
+        <div class="section-card-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M21 12c-4.5 0-6.5-4-9-4s-4.5 4-9 4 4.5 4 9 4 4.5-4 9-4z"/></svg>
+          <span id="prod-pricing-title">Valor y precio</span>
         </div>
-        <div class="form-group field-costo">
-          <label>Cantidad (presentación)</label>
-          <input type="number" class="form-control" id="prod-cant" placeholder="100" min="1" oninput="calcProductoPrecio()">
-          <span class="form-hint">Ej: 100, 250, 500</span>
-        </div>
-        <div class="form-group field-margen">
-          <label id="lbl-prod-margen">Recargo (%)</label>
-          <input type="number" class="form-control" id="prod-margen" value="0" min="0" oninput="calcProductoPrecio()">
-        </div>
-        <div class="price-display">
-          <div class="pl" id="lbl-prod-venta">Valor venta</div>
-          <div class="pv" id="prod-precio-venta">$0</div>
-        </div>
-        <div class="form-group" id="grp-prod-prov">
-          <label>Proveedor</label>
-          <input type="text" class="form-control" id="prod-prov" placeholder="Ej. Droguería La Vega">
+        <div style="display:flex;gap:.75rem;flex-wrap:nowrap;align-items:end">
+          <div class="form-group field-costo" style="flex:2;min-width:100px;margin:0">
+            <label id="lbl-prod-costo">Valor del producto ($)</label>
+            <input type="number" class="form-control" id="prod-costo" placeholder="3000" min="0" step="any" oninput="calcProductoPrecio()">
+          </div>
+          <div class="form-group field-costo" style="flex:1;min-width:70px;margin:0">
+            <label>Cantidad</label>
+            <input type="number" class="form-control" id="prod-cant" placeholder="100" min="1" oninput="calcProductoPrecio()">
+          </div>
+          <div class="form-group field-margen" style="flex:1;min-width:70px;margin:0">
+            <label id="lbl-prod-margen">Recargo (%)</label>
+            <input type="number" class="form-control" id="prod-margen" value="0" min="0" oninput="calcProductoPrecio()">
+          </div>
+          <div class="price-display" style="padding:4px 8px;flex-shrink:0">
+            <div class="pl" id="lbl-prod-venta">Valor venta</div>
+            <div class="pv" id="prod-precio-venta">$0</div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Notas -->
-    <div class="form-group">
-      <label>Notas</label>
-      <textarea class="form-control" id="prod-notas" placeholder="Observaciones..." rows="2"></textarea>
+    <!-- Fila 3: Proveedor + Notas -->
+    <div style="display:flex;gap:1rem;margin-bottom:1rem">
+      <div class="form-group" id="grp-prod-prov" style="flex:1;margin:0">
+        <label>Proveedor</label>
+        <input type="text" class="form-control" id="prod-prov" placeholder="Ej. Droguería La Vega">
+      </div>
+      <div class="form-group" style="flex:2;margin:0">
+        <label>Notas</label>
+        <textarea class="form-control" id="prod-notas" placeholder="Observaciones..." rows="2" style="resize:none"></textarea>
+      </div>
     </div>
 
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal('modal-producto')">Cancelar</button>
+    <div class="modal-footer" style="margin-top:0">
+      <button class="btn" onclick="volverAProductos()">Cancelar</button>
       <button class="btn btn-primary" onclick="saveProducto()">Guardar producto</button>
     </div>
   </div>
@@ -1391,7 +1403,7 @@ function buildProductosTable() {
       <td>${costoLabel}</td>
       <td style="font-weight:700;color:var(--accent-text)">${precioLabel}</td>
       <td style="display:flex;gap:6px">
-        <button class="btn" style="padding:.2rem .6rem;font-size:12px" onclick="openEditProductoModal('${p.id}')">Editar</button>
+        <button class="btn" style="padding:.2rem .6rem;font-size:12px" onclick="openEditProductoPage('${p.id}')">Editar</button>
         <button class="btn" style="padding:.2rem .6rem;font-size:12px;background:var(--danger-bg);color:var(--danger);border-color:#fca5a5" onclick="deleteProducto('${p.id}','${p.name.replace(/'/g,"\\'")}')">Eliminar</button>
       </td>
     </tr>`;
@@ -1467,11 +1479,10 @@ function selectTipo(val, el) {
 }
 
 function onProductoTipoChange() {
-  const tipo = document.getElementById('prod-tipo').value || 'Terminado';
+  const tipo = document.getElementById('prod-tipo').value || 'Insumo';
   const esTerminado = tipo === 'Terminado';
   document.getElementById('prod-pricing-title').textContent = esTerminado ? 'Precio de venta' : 'Valor y precio';
   document.getElementById('lbl-prod-costo').textContent = esTerminado ? 'Costo total de producción ($)' : 'Valor del producto ($)';
-  document.getElementById('hint-prod-costo').textContent = esTerminado ? 'Costo de producir esta cantidad' : 'Precio de compra de esta presentación';
   document.getElementById('lbl-prod-margen').textContent = esTerminado ? 'Margen (%)' : 'Recargo (%)';
   document.getElementById('lbl-prod-venta').textContent = esTerminado ? 'Precio venta' : 'Valor venta';
   document.getElementById('grp-prod-prov').style.display = esTerminado ? 'none' : 'block';
@@ -1482,8 +1493,8 @@ function openAddProductoModal() {
   document.getElementById('modal-producto-title').textContent = 'Nuevo producto';
   document.getElementById('producto-id').value = '';
   document.getElementById('prod-name').value = '';
-  document.getElementById('prod-tipo').value = 'Terminado';
-  document.querySelector('.tipo-pill[data-value="Terminado"]')?.click();
+  document.getElementById('prod-tipo').value = 'Insumo';
+  document.querySelector('.tipo-pill[data-value="Insumo"]')?.click();
   document.querySelector('[name="prod-unit"][value="g"]').checked = true;
   document.getElementById('prod-cant').value = '';
   document.getElementById('prod-costo').value = '';
@@ -1499,7 +1510,7 @@ function openAddProductoModal() {
 }
 
 function openEditProductoModal(id) {
-  const p = productos.find(x => x.id === id);
+  const p = productos.find(x => x.id == id);
   if (!p) return;
   document.getElementById('modal-producto-title').textContent = 'Editar producto';
   document.getElementById('producto-id').value = id;
@@ -1531,6 +1542,56 @@ function openEditProductoModal(id) {
   document.getElementById('modal-producto').classList.add('open');
 }
 
+function openEditProductoPage(id) {
+  const p = productos.find(x => x.id == id);
+  if (!p) return;
+  if (window._editProductoRestore) window._editProductoRestore();
+  window._editProductoId = id;
+  window._editProductoScrollY = window.scrollY;
+  const modalContent = document.querySelector('#modal-producto > .modal');
+  if (!modalContent) return;
+  const container = document.getElementById('edit-producto-container');
+  container.innerHTML = '';
+  container.appendChild(modalContent);
+  document.getElementById('modal-producto-title').style.display = 'none';
+  window._editProductoRestore = function () {
+    document.getElementById('modal-producto-title').style.display = '';
+    document.getElementById('modal-producto').appendChild(modalContent);
+    window._editProductoRestore = null;
+  };
+  nav('edit-producto', document.querySelector('.nav-item[onclick*="productos"]'));
+  window.scrollTo(0, 0);
+  openEditProductoModal(id);
+  document.getElementById('modal-producto').classList.remove('open');
+}
+
+function volverAProductos() {
+  if (window._editProductoRestore) {
+    window._editProductoRestore();
+    const savedId = window._editProductoId;
+    window._editProductoId = null;
+    const savedY = window._editProductoScrollY;
+    window._editProductoScrollY = null;
+    nav('productos', document.querySelector('.nav-item[onclick*="productos"]'));
+    setTimeout(() => {
+      if (savedId) {
+        const tr = document.querySelector('#productos-table tr')?.parentElement?.querySelectorAll('tr');
+        if (tr) {
+          for (let i = 0; i < tr.length; i++) {
+            if (tr[i].querySelector(`button[onclick*="'${savedId}'"]`)) {
+              tr[i].scrollIntoView({ block: 'center' });
+              return;
+            }
+          }
+        }
+      }
+      if (savedY != null) window.scrollTo(0, savedY);
+    }, 100);
+  } else {
+    closeModal('modal-producto');
+  }
+}
+
 function calcProductoPrecio() {
   const costo  = parseFloat(document.getElementById('prod-costo').value) || 0;
   const margen = parseFloat(document.getElementById('prod-margen').value) || 0;
@@ -1541,7 +1602,7 @@ function calcProductoPrecio() {
 async function saveProducto() {
   const id       = document.getElementById('producto-id').value;
   const nombre   = document.getElementById('prod-name').value.trim();
-  const tipo     = document.getElementById('prod-tipo').value || 'Terminado';
+  const tipo = document.getElementById('prod-tipo').value || 'Insumo';
   const unidad   = (document.querySelector('[name="prod-unit"]:checked') || {}).value || 'u';
   const catId    = parseInt(document.getElementById('prod-cat').value) || null;
   const stock    = parseFloat(document.getElementById('prod-stock').value) || 0;
@@ -1569,7 +1630,12 @@ async function saveProducto() {
     if (error) { alert('Error al guardar: ' + error.message); return; }
   }
 
-  closeModal('modal-producto');
+  if (window._editProductoRestore) {
+    window._editProductoRestore();
+    nav('productos', document.querySelector('.nav-item[onclick*="productos"]'));
+  } else {
+    closeModal('modal-producto');
+  }
   await loadData();
   buildProductosTable();
   buildDashboard();
@@ -2585,6 +2651,7 @@ document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', 
 
 function nav(page, el) {
   if (page !== 'edit-receta' && window._editRecipeRestore) window._editRecipeRestore();
+  if (page !== 'edit-producto' && window._editProductoRestore) window._editProductoRestore();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
