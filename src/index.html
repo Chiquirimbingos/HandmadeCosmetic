@@ -1391,23 +1391,30 @@ function buildProductosTable() {
     return;
   }
   data.sort((a, b) => (a.cat || '').localeCompare(b.cat || '') || (a.name || '').localeCompare(b.name || ''));
-  tbody.innerHTML = data.map(p => {
+  const SEP = '<tr><td colspan="7" style="padding:0;border:none;line-height:0;font-size:0"><div style="height:1px;background:var(--accent)"></div></td></tr>';
+  let prevCat = '', html = '';
+  data.forEach((p, i) => {
+    const isNewCat = i > 0 && p.cat !== prevCat;
+    const isFst = i === 0 || isNewCat;
+    if (isFst) html += SEP;
+    prevCat = p.cat || '';
     const st = getStatus(p);
     const costoLabel = p.tipo === 'Terminado' ? fmtMoney(p.costo) : fmtMoney(p.costo) + '/' + p.unit;
     const precioLabel = p.precioVenta > 0 ? fmtMoney(p.precioVenta) : '—';
-    return `<tr>
-      <td>${p.cat}</td>
+    html += `<tr>
+      <td style="font-weight:${isFst?'700':'400'}">${isFst ? '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:6px;vertical-align:middle"></span>' : ''}${p.cat}</td>
       <td style="font-weight:500">${p.name}</td>
       <td><span class="badge badge-ml">${p.tipo}</span></td>
       <td>${p.stock.toLocaleString('es-CL')} ${p.unit} <span class="badge badge-${st.cls}" style="font-size:10px">${st.label}</span></td>
       <td>${costoLabel}</td>
       <td style="font-weight:700;color:var(--accent-text)">${precioLabel}</td>
-      <td style="display:flex;gap:6px">
+      <td style="white-space:nowrap">
         <button class="btn" style="padding:.2rem .6rem;font-size:12px" onclick="openEditProductoPage('${p.id}')">Editar</button>
         <button class="btn" style="padding:.2rem .6rem;font-size:12px;background:var(--danger-bg);color:var(--danger);border-color:#fca5a5" onclick="deleteProducto('${p.id}','${p.name.replace(/'/g,"\\'")}')">Eliminar</button>
       </td>
     </tr>`;
-  }).join('');
+  });
+  tbody.innerHTML = html;
 }
 
 async function loadProdCats() {
