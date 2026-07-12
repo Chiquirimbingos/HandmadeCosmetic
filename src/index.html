@@ -945,13 +945,13 @@
     <div style="display:flex;gap:12px;align-items:center;margin-bottom:1rem;padding:.4rem 0">
       <span style="font-size:12px;font-weight:600;color:var(--text-muted)">Unidad:</span>
       <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer">
-        <input type="radio" name="prod-unit" value="g" checked> g (gramos)
+        <input type="radio" name="prod-unit" value="g" checked> <span style="color:#eab308;font-weight:600">g</span> (gramos)
       </label>
       <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer">
-        <input type="radio" name="prod-unit" value="ml"> ml (mililitros)
+        <input type="radio" name="prod-unit" value="ml"> <span style="color:#eab308;font-weight:600">ml</span> (mililitros)
       </label>
       <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer">
-        <input type="radio" name="prod-unit" value="u"> u (unidades)
+        <input type="radio" name="prod-unit" value="u"> <span style="color:#eab308;font-weight:600">u</span> (unidades)
       </label>
     </div>
 
@@ -2221,13 +2221,10 @@ async function exportStockPDF() {
 }
 
 function csvDownload(data, filename) {
-  const rows = data.map(row =>
-    Object.values(row).map(cell => {
-      const s = String(cell ?? '');
-      return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
-    }).join(',')
-  );
-  const csv = '\uFEFF' + rows.join('\n');
+  const esc = v => { const s = String(v ?? ''); return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const header = data.length > 0 ? Object.keys(data[0]).map(esc).join(',') : '';
+  const rows = data.map(row => Object.values(row).map(esc).join(','));
+  const csv = '\uFEFF' + (header ? header + '\n' : '') + rows.join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
   a.download = filename + '.csv';
