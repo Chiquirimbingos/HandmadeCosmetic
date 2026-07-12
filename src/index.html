@@ -729,7 +729,7 @@
               style="padding-left:30px;width:200px"
               oninput="buildProductosTable()">
           </div>
-          <button class="btn btn-primary" onclick="openAddProductoModal()">
+          <button class="btn btn-primary" onclick="openNewProductoPage()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Nuevo producto
           </button>
@@ -1509,6 +1509,28 @@ function openAddProductoModal() {
   document.getElementById('modal-producto').classList.add('open');
 }
 
+function openNewProductoPage() {
+  if (window._editProductoRestore) window._editProductoRestore();
+  window._editProductoId = null;
+  window._editProductoScrollY = window.scrollY;
+  const modalContent = document.querySelector('#modal-producto > .modal');
+  if (!modalContent) return;
+  const container = document.getElementById('edit-producto-container');
+  container.innerHTML = '';
+  container.appendChild(modalContent);
+  document.getElementById('modal-producto-title').style.display = 'none';
+  window._editProductoRestore = function () {
+    document.getElementById('modal-producto-title').style.display = '';
+    document.getElementById('modal-producto').appendChild(modalContent);
+    window._editProductoRestore = null;
+  };
+  document.querySelector('#page-edit-producto .page-header h2').textContent = 'Nuevo producto';
+  nav('edit-producto', document.querySelector('.nav-item[onclick*="productos"]'));
+  window.scrollTo(0, 0);
+  openAddProductoModal();
+  document.getElementById('modal-producto').classList.remove('open');
+}
+
 function openEditProductoModal(id) {
   const p = productos.find(x => x.id == id);
   if (!p) return;
@@ -1559,6 +1581,7 @@ function openEditProductoPage(id) {
     document.getElementById('modal-producto').appendChild(modalContent);
     window._editProductoRestore = null;
   };
+  document.querySelector('#page-edit-producto .page-header h2').textContent = 'Editar producto';
   nav('edit-producto', document.querySelector('.nav-item[onclick*="productos"]'));
   window.scrollTo(0, 0);
   openEditProductoModal(id);
