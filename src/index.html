@@ -1112,7 +1112,7 @@
       </div>
     </div>
     <hr class="divider">
-    <div class="form-section-title" style="margin-top:.5rem">Productos por unidad producida</div>
+    <div class="form-section-title" style="margin-top:.5rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap">Productos por unidad producida <span style="font-size:10px;color:#eab308;font-weight:400">Nombre a sumar debe existir en el módulo Productos</span></div>
     <div id="recipe-filter-wrap" style="display:flex;gap:6px;align-items:center;margin-bottom:.5rem;flex-wrap:wrap">
       <label style="font-size:12px;display:flex;align-items:center;gap:2px;cursor:pointer"><input type="radio" name="ing-tipo" value="Insumo" checked onchange="onIngTipoChange()"> Insumo</label>
       <label style="font-size:12px;display:flex;align-items:center;gap:2px;cursor:pointer"><input type="radio" name="ing-tipo" value="Empaque" onchange="onIngTipoChange()"> Empaque</label>
@@ -1754,6 +1754,7 @@ function buildCatTable() {
 }
 
 function openCatModal(id) {
+  window._tempCatGroups = [];
   if (!id && catFilter === 'all') {
     const firstTab = document.querySelector('#cat-tabs .tab:not(.active)');
     if (firstTab) { firstTab.click(); return; }
@@ -1772,31 +1773,36 @@ function openCatModal(id) {
   if (!id) document.getElementById('cat-grupo').focus();
 }
 
-function updateCatGrupoOptions() {
-  const tipo = document.getElementById('cat-tipo').value;
-  const sel = document.getElementById('cat-grupo');
+function getCatGrupoOptions(tipo) {
   const grupos = {};
   categorias.filter(c => c.tipo_producto === tipo).forEach(c => {
     const g = c.categoria || 'Sin categoría';
     if (!grupos[g]) grupos[g] = g;
   });
-  const opts = Object.keys(grupos).sort();
+  // Include temp groups added via quickAddCatGroup
+  (window._tempCatGroups || []).forEach(g => { if (!grupos[g]) grupos[g] = g; });
+  return Object.keys(grupos).sort();
+}
+
+function updateCatGrupoOptions() {
+  const tipo = document.getElementById('cat-tipo').value;
+  const sel = document.getElementById('cat-grupo');
+  const opts = getCatGrupoOptions(tipo);
   sel.innerHTML = opts.length
     ? opts.map(g => `<option value="${g}">${g}</option>`).join('')
     : '<option value="">— Sin categorías para este tipo —</option>';
 }
 
-async function quickAddCatGroup() {
+function quickAddCatGroup() {
   const tipo = document.getElementById('cat-tipo').value.trim();
-  if (!tipo) { alert('Primero escribe o selecciona un Tipo de producto.'); return; }
+  if (!tipo) { alert('Primero selecciona un Tipo de producto.'); return; }
   const grupo = prompt('Nueva categoría (grupo) — ej. Aceites, Fragancias:');
   if (!grupo || !grupo.trim()) return;
-  const { error } = await supa.from('categorias').insert([{ nombre: grupo.trim(), categoria: grupo.trim(), tipo_producto: tipo }]);
-  if (error) { alert('Error: ' + error.message); return; }
-  const { data, error: e2 } = await supa.from('categorias').select('*').order('nombre');
-  if (!e2) categorias = data;
+  const g = grupo.trim();
+  window._tempCatGroups = window._tempCatGroups || [];
+  if (!window._tempCatGroups.includes(g)) window._tempCatGroups.push(g);
   updateCatGrupoOptions();
-  document.getElementById('cat-grupo').value = grupo.trim();
+  document.getElementById('cat-grupo').value = g;
 }
 
 async function renameCatField(input) {
@@ -1830,6 +1836,7 @@ async function saveCat() {
     if (error) { alert('Error al guardar: ' + error.message); return; }
   }
 
+  window._tempCatGroups = [];
   closeModal('modal-categoria');
   const { data, error } = await supa.from('categorias').select('*').order('nombre');
   if (!error) categorias = data;
@@ -2543,8 +2550,7 @@ function getCatGroup(catId) {
 
 function getCatGroups(tipo) {
   const list = tipo ? categorias.filter(c => c.tipo_producto === tipo) : categorias;
-  const groups = [...new Set(list.map(c => c.categoria).filter(Boolean))];
-  return groups.filter(g => productos.some(p => getCatGroup(p.categoria_id) === g)).sort();
+  return [...new Set(list.map(c => c.categoria).filter(Boolean))].sort();
 }
 
 function editRecipe(id) {
