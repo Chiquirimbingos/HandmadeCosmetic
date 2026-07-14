@@ -635,7 +635,7 @@
             <option>Otro</option>
           </select>
         </div>
-        <button class="btn btn-primary" onclick="openAddRecipeModal()">
+        <button class="btn btn-primary" onclick="newRecipePage()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Nueva receta
         </button>
@@ -693,7 +693,7 @@
     <!-- ========== EDITAR RECETA ========== -->
     <div class="page" id="page-edit-receta">
       <div class="page-header">
-        <h2>Editar receta</h2>
+        <h2 id="edit-receta-title">Editar receta</h2>
       </div>
       <div id="edit-receta-container"></div>
     </div>
@@ -751,6 +751,7 @@
       </div>
       <div class="actions-bar">
         <div class="tabs" id="cat-tabs"></div>
+        <input type="text" class="form-control" id="cat-search" placeholder="Buscar por nombre..." style="max-width:200px;font-size:12px" oninput="buildCatTable()">
         <button class="btn btn-primary" onclick="openCatModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Nueva categoría
@@ -1050,8 +1051,11 @@
     </div>
     <div class="form-group" style="margin-top:.5rem">
       <label>Tipo de producto</label>
-      <input type="text" class="form-control" id="cat-tipo" placeholder="Ej. Insumo, Empaque, Etiquetas" autocomplete="off" oninput="updateCatGrupoOptions()">
-      <span class="form-hint" style="font-size:11px;color:var(--text-muted);margin-top:3px;display:block">Agrupa los nombres por tipo de producto.</span>
+      <select class="form-control" id="cat-tipo" onchange="updateCatGrupoOptions()">
+        <option value="Insumo">Insumo</option>
+        <option value="Empaque">Empaque</option>
+      </select>
+      <span class="form-hint" style="font-size:11px;color:var(--text-muted);margin-top:3px;display:block">Tipo de producto para agrupar categorías.</span>
     </div>
     <div class="form-group" style="margin-top:.5rem">
       <label style="color:#eab308;font-weight:600">Observación</label>
@@ -1109,16 +1113,15 @@
     </div>
     <hr class="divider">
     <div class="form-section-title" style="margin-top:.5rem">Productos por unidad producida</div>
-    <div id="recipe-filter-wrap" style="display:flex;gap:6px;align-items:center;margin-bottom:.5rem">
-      <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">F:</span>
+    <div id="recipe-filter-wrap" style="display:flex;gap:6px;align-items:center;margin-bottom:.5rem;flex-wrap:wrap">
+      <label style="font-size:12px;display:flex;align-items:center;gap:2px;cursor:pointer"><input type="radio" name="ing-tipo" value="Insumo" checked onchange="onIngTipoChange()"> Insumo</label>
+      <label style="font-size:12px;display:flex;align-items:center;gap:2px;cursor:pointer"><input type="radio" name="ing-tipo" value="Empaque" onchange="onIngTipoChange()"> Empaque</label>
+      <label style="font-size:12px;display:flex;align-items:center;gap:2px;cursor:pointer"><input type="radio" name="ing-tipo" value="all" onchange="onIngTipoChange()"> Todos</label>
+      <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;margin-left:4px">F:</span>
       <select class="form-control" id="recipe-cat-filter" style="flex:1;min-width:0"></select>
-      <button class="btn btn-primary" onclick="addRecipeIngRow('Insumo')" style="white-space:nowrap;flex-shrink:0;font-size:13px;padding:.3rem .5rem">
+      <button class="btn btn-primary" onclick="addRecipeIngRowFromRadio()" style="white-space:nowrap;flex-shrink:0;font-size:13px;padding:.3rem .5rem">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Insumo
-      </button>
-      <button class="btn btn-primary" onclick="addRecipeIngRow('Empaque')" style="white-space:nowrap;flex-shrink:0;font-size:13px;padding:.3rem .5rem">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Empaque
+        Nombre
       </button>
     </div>
     <div id="recipe-ings-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:.75rem"></div>
@@ -1720,7 +1723,9 @@ function buildCatTable() {
   const tabsEl = document.getElementById('cat-tabs');
   tabsEl.innerHTML = tipos.map(t => `<div class="tab${t === catFilter ? ' active' : ''}" onclick="filterCategorias('${t}', this)">${t === 'all' ? 'Todos' : t}</div>`).join('');
 
-  const data = catFilter === 'all' ? categorias : categorias.filter(c => c.tipo_producto === catFilter);
+  const search = (document.getElementById('cat-search')?.value || '').toLowerCase().trim();
+  let data = catFilter === 'all' ? categorias : categorias.filter(c => c.tipo_producto === catFilter);
+  if (search) data = data.filter(c => (c.nombre || '').toLowerCase().includes(search) || (c.categoria || '').toLowerCase().includes(search));
   const tbody = document.getElementById('cat-table');
   if (!data.length) {
     const msg = catFilter === 'all' ? 'Sin categorías. Crea la primera.' : `Sin categorías para "${catFilter}".`;
@@ -1761,7 +1766,6 @@ function openCatModal(id) {
   document.getElementById('cat-grupo').value = c?.categoria || '';
   document.getElementById('cat-name').value = c?.nombre || '';
   document.getElementById('cat-obs').value = c?.observacion || '';
-  document.getElementById('cat-tipo').disabled = !!id;
   document.getElementById('cat-name').disabled = false;
   if (id) document.getElementById('cat-name').focus();
   document.getElementById('modal-categoria').classList.add('open');
@@ -2475,9 +2479,28 @@ function editRecipePage(id) {
     document.getElementById('modal-recipe').appendChild(modalContent);
     window._editRecipeRestore = null;
   };
+  document.getElementById('edit-receta-title').textContent = 'Editar receta';
   window._editRecipeReturn = 'recipes';
   nav('edit-receta', null);
   editRecipe(id);
+  document.getElementById('modal-recipe').classList.remove('open');
+}
+
+function newRecipePage() {
+  if (window._editRecipeRestore) window._editRecipeRestore();
+  const modalContent = document.querySelector('#modal-recipe > .modal');
+  if (!modalContent) return;
+  const container = document.getElementById('edit-receta-container');
+  container.innerHTML = '';
+  container.appendChild(modalContent);
+  window._editRecipeRestore = function () {
+    document.getElementById('modal-recipe').appendChild(modalContent);
+    window._editRecipeRestore = null;
+  };
+  document.getElementById('edit-receta-title').textContent = 'Nueva receta';
+  window._editRecipeReturn = 'recipes';
+  nav('edit-receta', null);
+  openAddRecipeModal();
   document.getElementById('modal-recipe').classList.remove('open');
 }
 
@@ -2521,7 +2544,7 @@ function getCatGroup(catId) {
 function getCatGroups(tipo) {
   const list = tipo ? categorias.filter(c => c.tipo_producto === tipo) : categorias;
   const groups = [...new Set(list.map(c => c.categoria).filter(Boolean))];
-  return groups.sort();
+  return groups.filter(g => productos.some(p => getCatGroup(p.categoria_id) === g)).sort();
 }
 
 function editRecipe(id) {
@@ -2562,26 +2585,42 @@ function openAddRecipeModal(recipe) {
         return { rowId: uid(), prodId: ri.prodId, qty: ri.qty, catFilter: '', tipo: cat?.tipo_producto || 'Insumo' };
       })
     : [];
-  const filterSel = document.getElementById('recipe-cat-filter');
-  const allGroups = [...new Set([...getCatGroups('Insumo'), ...getCatGroups('Empaque')])].sort();
-  filterSel.innerHTML = '<option value="">Todas</option>' +
-    allGroups.map(g => `<option value="${g}">${g}</option>`).join('');
+  document.querySelector('input[name="ing-tipo"][value="Insumo"]').checked = true;
+  onIngTipoChange();
   renderRecipeIngRows();
   document.getElementById('modal-recipe').classList.add('open');
 }
 
+function onIngTipoChange() {
+  const radio = document.querySelector('input[name="ing-tipo"]:checked');
+  const tipo = radio && radio.value !== 'all' ? radio.value : null;
+  const filterSel = document.getElementById('recipe-cat-filter');
+  const groups = tipo
+    ? getCatGroups(tipo)
+    : [...new Set([...getCatGroups('Insumo'), ...getCatGroups('Empaque')])];
+  filterSel.innerHTML = '<option value="">Todas</option>' + groups.sort().map(g => `<option value="${g}">${g}</option>`).join('');
+}
+
+function addRecipeIngRowFromRadio() {
+  const radio = document.querySelector('input[name="ing-tipo"]:checked');
+  const tipo = radio && radio.value !== 'all' ? radio.value : null;
+  addRecipeIngRow(tipo);
+}
+
 function addRecipeIngRow(tipo) {
   const filterVal = document.getElementById('recipe-cat-filter').value;
-  const prodsTipo = productos.filter(p => categorias.find(c => c.id == p.categoria_id)?.tipo_producto === tipo);
+  const prods = tipo
+    ? productos.filter(p => categorias.find(c => c.id == p.categoria_id)?.tipo_producto === tipo)
+    : productos;
   const filteredProds = filterVal
-    ? prodsTipo.filter(p => getCatGroup(p.categoria_id) === filterVal)
-    : prodsTipo;
+    ? prods.filter(p => getCatGroup(p.categoria_id) === filterVal)
+    : prods;
   recipeIngRows.push({
     rowId: uid(),
     prodId: '',
     qty: 1,
     catFilter: filterVal,
-    tipo: tipo
+    tipo: tipo || 'Insumo'
   });
   renderRecipeIngRows();
 }
@@ -2593,17 +2632,19 @@ function renderRecipeIngRows() {
     const filteredProds = (row.catFilter
       ? productos.filter(p => getCatGroup(p.categoria_id) === row.catFilter)
       : productos).filter(p => categorias.find(c => c.id == p.categoria_id)?.tipo_producto === tipo);
-    return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-      <select class="form-control" style="flex:1;min-width:160px;${!row.prodId ? 'color:#DC2626;font-weight:600' : ''}" onchange="recipeIngRows[${idx}].prodId=this.value;this.style.color='';this.style.fontWeight=''">
-        <option value="" disabled ${!row.prodId ? 'selected' : ''}>-- Seleccione un ${tipo} --</option>
-        ${filteredProds.map(p => `<option value="${p.id}" ${p.id === row.prodId ? 'selected' : ''}>${p.name} (${p.tipo})</option>`).join('')}
+    const selProd = filteredProds.find(x => x.id == row.prodId);
+    return `<div style="display:grid;grid-template-columns:minmax(140px,1fr) 70px 28px minmax(100px,auto) 32px;gap:6px;align-items:center">
+      <select class="form-control" style="width:100%;${!row.prodId ? 'color:#DC2626;font-weight:600' : ''}" onchange="recipeIngRows[${idx}].prodId=this.value;this.style.color='';this.style.fontWeight='';renderRecipeIngRows()">
+        <option value="" disabled ${!row.prodId ? 'selected' : ''}>-- Seleccione un Nombre --</option>
+        ${filteredProds.map(p => `<option value="${p.id}" ${p.id === row.prodId ? 'selected' : ''}>${p.name}</option>`).join('')}
       </select>
-      <input type="number" class="form-control" style="width:80px;flex-shrink:0"
+      <input type="number" class="form-control" style="width:100%"
         placeholder="1" min="0" step="any"
         value="${row.qty !== undefined && row.qty !== 0 ? row.qty : 1}"
         oninput="recipeIngRows[${idx}].qty=parseFloat(this.value)||0">
-      <span style="font-size:12px;color:var(--text-muted);min-width:20px">${(()=>{const p=filteredProds.find(x=>x.id==row.prodId);return p?p.unit:''})()}</span>
-      <button class="btn" style="padding:.25rem .4rem;flex-shrink:0" onclick="recipeIngRows.splice(${idx},1);renderRecipeIngRows()">✕</button>
+      <span style="font-size:12px;color:var(--accent);font-weight:600;text-align:center;white-space:nowrap">&nbsp;${selProd ? selProd.unit : ''}</span>
+      <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${selProd ? 'Cat: ' + selProd.cat : ''}</span>
+      <button class="btn" style="padding:.25rem .4rem;text-align:center" onclick="recipeIngRows.splice(${idx},1);renderRecipeIngRows()">✕</button>
     </div>`;
   }).join('');
 }
