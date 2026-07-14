@@ -692,8 +692,12 @@
 
     <!-- ========== EDITAR RECETA ========== -->
     <div class="page" id="page-edit-receta">
-      <div class="page-header">
-        <h2 id="edit-receta-title">Editar receta</h2>
+      <div class="page-header" style="display:flex;align-items:center;gap:8px">
+        <h2 id="edit-receta-title" style="margin:0">Editar receta</h2>
+        <button class="btn" onclick="volverDesdeEditReceta()" style="margin-left:auto;font-size:13px;padding:.5rem .7rem;border:2px solid var(--accent);border-radius:var(--radius);background:var(--accent-bg);color:var(--accent-text);font-weight:600;cursor:pointer;transition:all var(--transition);display:flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
+          Volver
+        </button>
       </div>
       <div id="edit-receta-container"></div>
     </div>
@@ -1093,7 +1097,6 @@
 <!-- ========== MODAL: Nueva Receta ========== -->
 <div class="modal-bg modal-lg" id="modal-recipe">
   <div class="modal">
-    <h3 id="modal-recipe-title">Nueva receta</h3>
     <div class="form-grid">
       <div class="form-group" style="grid-column:1/-1">
         <label>Nombre de la receta</label>
@@ -1126,9 +1129,7 @@
     </div>
     <div id="recipe-ings-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:.75rem"></div>
     <div class="modal-footer">
-      <button class="btn" onclick="volverDesdeEditReceta()" style="margin-right:auto;font-size:12px;padding:.3rem .7rem">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
+      <button class="btn" onclick="volverDesdeEditReceta()" style="margin-right:auto">Volver</button>
       <button class="btn" onclick="if (window._editRecipeRestore) volverDesdeEditReceta(); else if (document.getElementById('modal-recipe').classList.contains('inline')) cancelEditFromCosto(); else closeModal('modal-recipe')">Cancelar</button>
       <button class="btn" onclick="goSimulateFromEdit()" style="font-size:12px">Ver costos</button>
       <button class="btn btn-primary" onclick="saveRecipe()">Guardar receta</button>
@@ -2580,9 +2581,15 @@ async function deleteRecipe(id) {
 
 function openAddRecipeModal(recipe) {
   editingRecipeId = recipe ? recipe.id : null;
-  document.getElementById('modal-recipe-title').textContent = recipe ? 'Editar receta' : 'Nueva receta';
   document.getElementById('rec-name').value = recipe ? recipe.name : '';
-  document.getElementById('rec-type').value = recipe ? recipe.type : 'Jabón sólido';
+  if (recipe && recipe.type) {
+    const sel = document.getElementById('rec-type');
+    const match = recipe.type.trim();
+    const opt = Array.from(sel.options).find(o => o.value.toLowerCase() === match.toLowerCase());
+    sel.value = opt ? opt.value : 'Jabón sólido';
+  } else {
+    document.getElementById('rec-type').value = 'Jabón sólido';
+  }
   document.getElementById('rec-yield').value = recipe ? recipe.yield : '';
   recipeIngRows = recipe
     ? recipe.ingredients.map(ri => {
