@@ -279,8 +279,8 @@
   .ing-list { display: flex; flex-direction: column; gap: 8px; margin-top: 1rem; }
   .ing-row {
     display: grid;
-    grid-template-columns: 1fr repeat(5, minmax(50px, auto));
-    gap: 8px;
+    grid-template-columns: minmax(80px,auto) minmax(100px,1fr) 70px 50px 60px 80px 60px 80px;
+    gap: 6px;
     align-items: center;
     font-size: 12px; padding: .5rem .85rem;
     background: var(--surface-alt); border-radius: var(--radius-sm);
@@ -288,7 +288,7 @@
   }
   .ing-header {
     display: grid;
-    grid-template-columns: 1fr repeat(5, minmax(50px, auto));
+    grid-template-columns: minmax(80px,auto) minmax(100px,1fr) 70px 50px 60px 80px 60px 80px;
     gap: 6px;
     align-items: center;
     font-size: 10px; font-weight: 700; text-transform: uppercase;
@@ -1946,7 +1946,7 @@ function simulate() {
   </div>`;
   let totalCosto = 0, totalVenta = 0;
   const hdr = `<div class="ing-header">
-    <span>Producto</span><span style="color:#EAB308">ValProd</span><span style="color:#EAB308">Cantidad</span><span style="color:#7DD3FC">Por unidad</span><span style="text-align:right;color:#0CD6B0">Costo</span><span style="text-align:right;color:#22C55E">Venta</span>
+    <span style="color:var(--text-muted);font-size:11px">Categoría</span><span>Producto</span>    <span style="text-align:right;color:#EAB308">ValProd</span><span style="text-align:right;color:#EAB308">Cantidad</span><span style="text-align:center">Por unidad</span>    <span style="text-align:right;color:#0CD6B0">Costo</span><span style="text-align:center;color:var(--text-muted);font-size:10px">Recargo</span><span style="text-align:right;color:#22C55E">Venta</span>
   </div>`;
   breakdownEl.innerHTML = hdr + recipe.ingredients.map(ri => {
     const prod = productos.find(p => p.id === ri.prodId);
@@ -1958,18 +1958,21 @@ function simulate() {
     totalCosto += subtotalCosto;
     totalVenta += subtotalVenta;
     return `<div class="ing-row">
+      <span style="color:var(--text-muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${prod.cat}</span>
       <span style="font-weight:500">${prod.name}</span>
-      <span style="color:#EAB308">${fmtMoney(prod.costo)}</span>
-      <span style="color:#EAB308">${prod.cant}</span>
-      <span style="color:#7DD3FC">${ri.qty} ${prod.unit}</span>
+      <span style="text-align:right;color:#EAB308">${fmtMoney(prod.costo)}</span>
+      <span style="text-align:right;color:#EAB308">${prod.cant}</span>
+      <span style="text-align:center;color:#7DD3FC">${ri.qty} ${prod.unit}</span>
       <span style="text-align:right;color:#0CD6B0">${fmtMoney(subtotalCosto)}</span>
+      <span style="text-align:center;color:var(--text-muted);font-size:11px">${prod.margen}%</span>
       <span style="text-align:right;color:#22C55E">${fmtMoney(subtotalVenta)}</span>
     </div>`;
   }).join('')
   + `<div class="ing-row" style="font-weight:700;border-top:2px solid var(--border);margin-top:3px;background:none">
-      <span>Total por unidad producida</span>
-      <span></span><span></span><span></span>
+      <span></span><span>Total por unidad producida</span>
+      <span></span><span></span><span></span><span></span>
       <span style="text-align:right;color:#0CD6B0">${fmtMoney(totalCosto)}</span>
+      <span></span>
       <span style="text-align:right;color:#22C55E">${fmtMoney(totalVenta)}</span>
     </div>`;
 
