@@ -542,7 +542,7 @@
     <h1>🌿 Cosmética Artesanal</h1>
     <p>Sistema de inventario y producción</p>
   </div>
-  <div class="sidebar-section">General</div>
+  <div class="sidebar-section" style="display:flex;align-items:center;justify-content:space-between">General <span id="sidebar-date" style="color:#eab308;font-weight:400;text-transform:none;letter-spacing:0;font-size:11px"></span></div>
   <div class="nav-item active" onclick="nav('dashboard', this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
     Panel
@@ -700,6 +700,20 @@
       <div id="edit-receta-container"></div>
     </div>
 
+    <!-- ========== EDITAR PRODUCCION (inline) ========== -->
+    <div class="page" id="page-edit-produccion">
+      <div class="page-header" style="display:flex;align-items:center;gap:8px">
+        <h2 style="margin:0">Editar producción</h2>
+        <button class="btn" onclick="volverAProduccion()" style="margin-left:auto;font-size:13px;padding:.5rem .7rem;border:2px solid var(--accent);border-radius:var(--radius);background:var(--accent-bg);color:var(--accent-text);font-weight:600;cursor:pointer;transition:all var(--transition);display:flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
+          Volver
+        </button>
+      </div>
+      <div class="card">
+        <div class="card-body" id="edit-produccion-container"></div>
+      </div>
+    </div>
+
     <!-- ========== EDITAR PRODUCTO (inline, como card) ========== -->
     <div class="page" id="page-edit-producto">
       <div class="page-header">
@@ -805,6 +819,10 @@
                   <th style="white-space:nowrap">U</th>
                   <th style="white-space:nowrap;text-align:right">Costo lote</th>
                   <th style="white-space:nowrap;text-align:right">Venta lote</th>
+                  <th style="white-space:nowrap">F. cortado</th>
+                  <th style="white-space:nowrap;text-align:center">N° días</th>
+                  <th style="white-space:nowrap;text-align:center">F. curado</th>
+                  <th style="white-space:nowrap;text-align:center">Acción</th>
                 </tr>
               </thead>
               <tbody id="prod-table"></tbody>
@@ -2096,15 +2114,24 @@ function renderProdPage() {
   pagination.style.display = 'flex';
   const start = (prodPage - 1) * prodPageSize;
   const pageData = prodData.slice(start, start + prodPageSize);
-  tbody.innerHTML = pageData.map(r => `<tr>
-    <td style="white-space:nowrap;font-weight:600;color:var(--text)">${r.codigo || '-'}</td>
+  const today = new Date().toISOString().slice(0, 10);
+  tbody.innerHTML = pageData.map(r => {
+    const fcurado = r.f_curado ? r.f_curado.slice(0, 10) : '';
+    const alerta = fcurado && fcurado >= today;
+    return `<tr>
+    <td style="white-space:nowrap;font-weight:600;color:var(--text)">${alerta ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#dc2626;margin-right:6px;vertical-align:middle"></span>' : ''}${r.codigo || '-'}</td>
     <td style="white-space:nowrap">${r.receta_nombre || '-'}</td>
     <td style="white-space:nowrap">${r.fecha ? r.fecha.slice(0, 10) : '-'}</td>
     <td style="white-space:nowrap">${r.hora ? r.hora.slice(0, 5) : '-'}</td>
     <td style="white-space:nowrap">${r.rendimiento}</td>
     <td style="white-space:nowrap;color:var(--accent);font-weight:600;text-align:right">$${Math.round(Number(r.costo_lote)).toLocaleString('es-CL')}</td>
     <td style="white-space:nowrap;color:#16a34a;font-weight:600;text-align:right">$${Math.round(Number(r.venta_lote)).toLocaleString('es-CL')}</td>
-  </tr>`).join('');
+    <td style="white-space:nowrap;font-size:12px">${r.f_cortado ? r.f_cortado.slice(0, 10) : '-'}</td>
+    <td style="white-space:nowrap;text-align:center;font-size:12px">${r.n_dias != null ? r.n_dias : '-'}</td>
+    <td style="white-space:nowrap;text-align:center;font-size:12px">${fcurado || '-'}</td>
+    <td style="white-space:nowrap;text-align:center"><button class="btn" style="font-size:11px;padding:.2rem .5rem" onclick="openEditProduccionPage('${r.id}')">Editar</button></td>
+  </tr>`;
+  }).join('');
   document.getElementById('prod-prev').disabled = prodPage <= 1;
   document.getElementById('prod-next').disabled = prodPage >= totalPages;
   document.getElementById('prod-page-info').textContent = `Página ${prodPage} de ${totalPages} (${prodData.length} registros)`;
@@ -2114,6 +2141,90 @@ function openEliminarProdModal() {
   document.getElementById('prod-eliminar-input').value = '';
   document.getElementById('modal-eliminar-prod').classList.add('open');
   document.getElementById('prod-eliminar-input').focus();
+}
+
+function volverAProduccion() {
+  nav('produccion', document.querySelector('.nav-item[onclick*="produccion"]'));
+}
+
+function openEditProduccionPage(id) {
+  const r = prodData.find(x => x.id === id);
+  if (!r) return;
+  const container = document.getElementById('edit-produccion-container');
+  const receta = r.receta_nombre || '';
+  const fecha = r.fecha ? r.fecha.slice(0, 10) : '';
+  const codigo = r.codigo || '';
+  const fcortado = r.f_cortado ? r.f_cortado.slice(0, 10) : '';
+  const ndias = r.n_dias != null ? r.n_dias : '';
+  const fcurado = fcortado && ndias ? (() => { const d = new Date(fcortado); d.setDate(d.getDate() + Number(ndias)); return d.toISOString().slice(0, 10); })() : '';
+  container.innerHTML = `
+    <input type="hidden" id="edit-prod-id" value="${id}">
+    <div style="display:flex;gap:1rem;margin-bottom:1rem">
+      <div class="form-group" style="flex:1">
+        <label>Receta</label>
+        <input type="text" class="form-control" value="${receta}" readonly style="background:var(--surface-alt)">
+      </div>
+    </div>
+    <div style="display:flex;gap:1rem;margin-bottom:1rem">
+      <div class="form-group" style="flex:1">
+        <label>Fecha</label>
+        <input type="text" class="form-control" id="edit-prod-fecha" value="${fecha}" readonly style="background:var(--surface-alt)">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>Código</label>
+        <input type="text" class="form-control" id="edit-prod-codigo" value="${codigo}" readonly style="background:var(--surface-alt)">
+      </div>
+    </div>
+    <hr class="divider">
+    <div style="display:flex;gap:1rem;margin-bottom:1rem">
+      <div class="form-group" style="flex:1">
+        <label>F. cortado</label>
+        <input type="date" class="form-control" id="edit-prod-fcortado" value="${fcortado}" style="color-scheme:dark" oninput="calcFCurado()">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>N° días</label>
+        <input type="number" class="form-control" id="edit-prod-ndias" value="${ndias}" min="0" step="1" oninput="calcFCurado()">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>F. curado</label>
+        <input type="date" class="form-control" id="edit-prod-fcurado" value="${fcurado}" readonly style="background:var(--surface-alt);color-scheme:dark">
+      </div>
+    </div>
+    <div class="modal-footer" style="margin-top:0">
+      <button class="btn" onclick="volverAProduccion()">Volver</button>
+      <button class="btn btn-primary" onclick="guardarEditProduccion()">Guardar</button>
+    </div>
+  `;
+  nav('edit-produccion', null);
+}
+
+function calcFCurado() {
+  const fc = document.getElementById('edit-prod-fcortado').value;
+  const nd = document.getElementById('edit-prod-ndias').value;
+  const out = document.getElementById('edit-prod-fcurado');
+  if (fc && nd) {
+    const d = new Date(fc);
+    d.setDate(d.getDate() + Number(nd));
+    out.value = d.toISOString().slice(0, 10);
+  } else {
+    out.value = '';
+  }
+}
+
+async function guardarEditProduccion() {
+  const id = document.getElementById('edit-prod-id').value;
+  const f_cortado = document.getElementById('edit-prod-fcortado').value || null;
+  const n_dias = document.getElementById('edit-prod-ndias').value;
+  const f_curado = document.getElementById('edit-prod-fcurado').value || null;
+  if (!id) return;
+  const payload = { f_cortado, n_dias: n_dias !== '' ? parseInt(n_dias) : null, f_curado };
+  const { error } = await supa.from('produccion').update(payload).eq('id', id);
+  if (error) { showAlert('Error al guardar: ' + error.message); return; }
+  const reg = prodData.find(r => r.id === id);
+  if (reg) { reg.f_cortado = payload.f_cortado; reg.n_dias = payload.n_dias; reg.f_curado = payload.f_curado; }
+  volverAProduccion();
+  renderProdPage();
+  showAlert('Producción actualizada.');
 }
 
 async function eliminarProduccionCodigo() {
@@ -2675,7 +2786,11 @@ function addRecipeType() {
 }
 
 // init
-document.addEventListener('DOMContentLoaded', sortRecTypeOptions);
+document.addEventListener('DOMContentLoaded', function() {
+  sortRecTypeOptions();
+  const d = new Date();
+  document.getElementById('sidebar-date').textContent = d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+});
 
 function renderRecipeIngRows() {
   const container = document.getElementById('recipe-ings-list');
@@ -2775,6 +2890,7 @@ document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', 
 function nav(page, el) {
   if (page !== 'edit-receta' && window._editRecipeRestore) window._editRecipeRestore();
   if (page !== 'edit-producto' && window._editProductoRestore) window._editProductoRestore();
+  if (page !== 'edit-produccion' && window._editProduccionRestore) window._editProduccionRestore();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
