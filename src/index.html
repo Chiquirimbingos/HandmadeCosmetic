@@ -2168,7 +2168,7 @@ function openEditProduccionPage(id) {
     <div style="display:flex;gap:1rem;margin-bottom:1rem">
       <div class="form-group" style="flex:1">
         <label>Fecha</label>
-        <input type="text" class="form-control" id="edit-prod-fecha" value="${fecha}" readonly style="background:var(--surface-alt)">
+        <input type="date" class="form-control" id="edit-prod-fecha" value="${fecha}" style="color-scheme:dark">
       </div>
       <div class="form-group" style="flex:1">
         <label>Código</label>
@@ -2213,15 +2213,16 @@ function calcFCurado() {
 
 async function guardarEditProduccion() {
   const id = document.getElementById('edit-prod-id').value;
+  const fecha = document.getElementById('edit-prod-fecha').value || null;
   const f_cortado = document.getElementById('edit-prod-fcortado').value || null;
   const n_dias = document.getElementById('edit-prod-ndias').value;
   const f_curado = document.getElementById('edit-prod-fcurado').value || null;
   if (!id) return;
-  const payload = { f_cortado, n_dias: n_dias !== '' ? parseInt(n_dias) : null, f_curado };
+  const payload = { fecha, f_cortado, n_dias: n_dias !== '' ? parseInt(n_dias) : null, f_curado };
   const { error } = await supa.from('produccion').update(payload).eq('id', id);
   if (error) { showAlert('Error al guardar: ' + error.message); return; }
   const reg = prodData.find(r => r.id === id);
-  if (reg) { reg.f_cortado = payload.f_cortado; reg.n_dias = payload.n_dias; reg.f_curado = payload.f_curado; }
+  if (reg) { reg.fecha = payload.fecha; reg.f_cortado = payload.f_cortado; reg.n_dias = payload.n_dias; reg.f_curado = payload.f_curado; }
   volverAProduccion();
   renderProdPage();
   showAlert('Producción actualizada.');
