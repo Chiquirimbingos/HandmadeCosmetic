@@ -674,6 +674,10 @@
               <div><strong style="color:#4a2c24">Venta u.</strong><br><span id="cs-venta" style="color:#166534;font-weight:600"></span></div>
               <button class="btn btn-primary" id="cs-grabar" style="display:none;margin-left:auto;font-size:12px;padding:.35rem .9rem">Grabar</button>
             </div>
+            <div id="cs-formatos" style="display:none;margin-top:.6rem;padding-top:.6rem;border-top:1px solid #d9a898;font-size:11px">
+              <div style="font-weight:700;color:#4a2c24;margin-bottom:.4rem">📦 Distribución por formato</div>
+              <div id="cs-formatos-body"></div>
+            </div>
           </div>
           <div id="sim-result"></div>
         </div>
@@ -1142,7 +1146,40 @@
       </div>
       <div class="form-group">
         <label>Rendimiento por lote</label>
-        <input type="number" class="form-control" id="rec-yield" placeholder="1" min="1">
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="number" class="form-control" id="rec-yield" placeholder="1" min="1" style="flex:1" oninput="valCantVsYield()">
+          <span id="cant-warning" style="display:none;flex-shrink:0" title="La suma de Cant_1..5 debe ser igual al Rendimiento">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </span>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:.6rem;padding:.7rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-alt);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:.5rem">
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent)">📐 Formatos</span>
+        <span id="cant-sum" style="font-size:11px;color:var(--text-muted);margin-left:auto"></span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div style="flex:1;min-width:90px;padding:.45rem;border:1px solid rgba(31,122,140,.15);border-radius:var(--radius-sm);background:var(--surface)">
+          <div class="form-group" style="margin:0"><label style="font-size:10px;font-weight:700;color:var(--accent)">Cant_1</label><input type="number" class="form-control" id="rec-c1" min="0" step="1" style="font-size:12px;padding:.3rem .5rem" oninput="valCantVsYield()"></div>
+          <div class="form-group" style="margin:.2rem 0 0 0"><label style="font-size:10px;font-weight:700;color:var(--accent)">Format_1</label><input type="number" class="form-control" id="rec-f1" min="0" step="1" style="font-size:12px;padding:.3rem .5rem"></div>
+        </div>
+        <div style="flex:1;min-width:90px;padding:.45rem;border:1px solid rgba(31,122,140,.15);border-radius:var(--radius-sm);background:var(--surface)">
+          <div class="form-group" style="margin:0"><label style="font-size:10px;font-weight:700;color:var(--accent)">Cant_2</label><input type="number" class="form-control" id="rec-c2" min="0" step="1" style="font-size:12px;padding:.3rem .5rem" oninput="valCantVsYield()"></div>
+          <div class="form-group" style="margin:.2rem 0 0 0"><label style="font-size:10px;font-weight:700;color:var(--accent)">Format_2</label><input type="number" class="form-control" id="rec-f2" min="0" step="1" style="font-size:12px;padding:.3rem .5rem"></div>
+        </div>
+        <div style="flex:1;min-width:90px;padding:.45rem;border:1px solid rgba(31,122,140,.15);border-radius:var(--radius-sm);background:var(--surface)">
+          <div class="form-group" style="margin:0"><label style="font-size:10px;font-weight:700;color:var(--accent)">Cant_3</label><input type="number" class="form-control" id="rec-c3" min="0" step="1" style="font-size:12px;padding:.3rem .5rem" oninput="valCantVsYield()"></div>
+          <div class="form-group" style="margin:.2rem 0 0 0"><label style="font-size:10px;font-weight:700;color:var(--accent)">Format_3</label><input type="number" class="form-control" id="rec-f3" min="0" step="1" style="font-size:12px;padding:.3rem .5rem"></div>
+        </div>
+        <div style="flex:1;min-width:90px;padding:.45rem;border:1px solid rgba(31,122,140,.15);border-radius:var(--radius-sm);background:var(--surface)">
+          <div class="form-group" style="margin:0"><label style="font-size:10px;font-weight:700;color:var(--accent)">Cant_4</label><input type="number" class="form-control" id="rec-c4" min="0" step="1" style="font-size:12px;padding:.3rem .5rem" oninput="valCantVsYield()"></div>
+          <div class="form-group" style="margin:.2rem 0 0 0"><label style="font-size:10px;font-weight:700;color:var(--accent)">Format_4</label><input type="number" class="form-control" id="rec-f4" min="0" step="1" style="font-size:12px;padding:.3rem .5rem"></div>
+        </div>
+        <div style="flex:1;min-width:90px;padding:.45rem;border:1px solid rgba(31,122,140,.15);border-radius:var(--radius-sm);background:var(--surface)">
+          <div class="form-group" style="margin:0"><label style="font-size:10px;font-weight:700;color:var(--accent)">Cant_5</label><input type="number" class="form-control" id="rec-c5" min="0" step="1" style="font-size:12px;padding:.3rem .5rem" oninput="valCantVsYield()"></div>
+          <div class="form-group" style="margin:.2rem 0 0 0"><label style="font-size:10px;font-weight:700;color:var(--accent)">Format_5</label><input type="number" class="form-control" id="rec-f5" min="0" step="1" style="font-size:12px;padding:.3rem .5rem"></div>
+        </div>
       </div>
     </div>
     <hr class="divider">
@@ -1252,6 +1289,9 @@ function mapRecipe(row) {
       qty:    parseFloat(ri.cantidad) || 0,
       tipo:   ri.tipo_insumo || 'producto',
     })),
+    c1: row.c1, f1: row.f1, c2: row.c2, f2: row.f2,
+    c3: row.c3, f3: row.f3, c4: row.c4, f4: row.f4,
+    c5: row.c5, f5: row.f5,
   };
 }
 
@@ -2022,6 +2062,48 @@ function simulate() {
   btn.dataset.costoUnit = costoUnit;
   btn.dataset.ventaUnit = ventaUnit;
   btn.dataset.rend = recipe.yield;
+
+  // Format distribution
+  const cVals = [1,2,3,4,5].map(i => parseInt(recipe['c'+i]) || 0);
+  const fVals = [1,2,3,4,5].map(i => parseInt(recipe['f'+i]) || 0);
+  const cfVals = [0,1,2,3,4].map(i => cVals[i] * fVals[i]);
+  const sumCF = cfVals.reduce((a, b) => a + b, 0);
+  const fmtEl = document.getElementById('cs-formatos');
+  const fmtBody = document.getElementById('cs-formatos-body');
+  if (sumCF > 0 && totalVenta > 0) {
+    const factor = totalVenta / sumCF;
+    const fmt2 = n => Math.round(Number(n)).toLocaleString('es-CL');
+    let html = `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:4px;font-weight:700;color:#4a2c24;font-size:10px;text-transform:uppercase;text-align:center">
+      ${[1,2,3,4,5].map(i => `<div>Formato ${i}</div>`).join('')}
+    </div>`;
+    html += `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:2px;text-align:center;font-size:11px;color:#4a2c24">
+      ${[0,1,2,3,4].map(i => `<div>c=${cVals[i]} f=${fVals[i]}<br><span style="font-size:10px;color:#2d5a3d">c×f=${cfVals[i]}</span></div>`).join('')}
+    </div>`;
+    html += `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:4px">
+      ${[0,1,2,3,4].map(i =>
+        `<div style="text-align:center;font-weight:600;color:#2d5a3d">${cfVals[i]} x ${fmt2(factor)}</div>`
+      ).join('')}
+    </div>`;
+    html += `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;font-weight:700;color:#166534">
+      ${[0,1,2,3,4].map(i => {
+        const val = cfVals[i] * factor;
+        return `<div style="text-align:center">$${fmt2(val)}</div>`;
+      }).join('')}
+    </div>`;
+    html += `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:2px;font-size:11px;color:#4a2c24">
+      ${[0,1,2,3,4].map(i => {
+        const unit = cVals[i] > 0 ? (cfVals[i] * factor) / cVals[i] : 0;
+        return `<div style="text-align:center">$<span style="font-weight:600;color:#2d5a3d">${fmt2(unit)}</span> / u.</div>`;
+      }).join('')}
+    </div>`;
+    html += `<div style="margin-top:4px;font-size:10px;color:#4a2c24;text-align:right">
+      Suma_C×F = ${sumCF} &nbsp;·&nbsp; Factor = ${fmt2(factor)} &nbsp;·&nbsp; Venta Lote = ${fmt2(totalVenta)}
+    </div>`;
+    fmtBody.innerHTML = html;
+    fmtEl.style.display = 'block';
+  } else {
+    fmtEl.style.display = 'none';
+  }
 }
 
 function showConfirm(msg) {
@@ -2719,6 +2801,9 @@ function openAddRecipeModal(recipe) {
     document.getElementById('rec-type').value = 'Jabón sólido';
   }
   document.getElementById('rec-yield').value = recipe ? recipe.yield : '';
+  ['c1','f1','c2','f2','c3','f3','c4','f4','c5','f5'].forEach(k => {
+    document.getElementById('rec-' + k).value = recipe ? (recipe[k] != null ? recipe[k] : '') : '';
+  });
   recipeIngRows = recipe
     ? recipe.ingredients.map(ri => {
         const prod = productos.find(p => p.id == ri.prodId);
@@ -2729,6 +2814,7 @@ function openAddRecipeModal(recipe) {
   document.querySelector('input[name="ing-tipo"][value="Insumo"]').checked = true;
   onIngTipoChange();
   renderRecipeIngRows();
+  valCantVsYield();
   document.getElementById('modal-recipe').classList.add('open');
 }
 
@@ -2770,6 +2856,26 @@ function sortRecTypeOptions() {
   const sel = document.getElementById('rec-type');
   const opts = Array.from(sel.options).sort((a, b) => a.value.localeCompare(b.value));
   opts.forEach(o => sel.appendChild(o));
+}
+
+function valCantVsYield() {
+  const yieldVal = parseInt(document.getElementById('rec-yield').value) || 0;
+  const sum = ['c1','c2','c3','c4','c5'].reduce((s,k) => s + (parseInt(document.getElementById('rec-'+k).value) || 0), 0);
+  const warn = document.getElementById('cant-warning');
+  const sumEl = document.getElementById('cant-sum');
+  if (yieldVal > 0) {
+    sumEl.textContent = `Suma: ${sum} / ${yieldVal}`;
+    if (sum !== yieldVal) {
+      warn.style.display = 'inline';
+      sumEl.style.color = '#dc2626';
+    } else {
+      warn.style.display = 'none';
+      sumEl.style.color = 'var(--text-muted)';
+    }
+  } else {
+    warn.style.display = 'none';
+    sumEl.textContent = '';
+  }
 }
 
 function addRecipeType() {
@@ -2823,6 +2929,11 @@ async function saveRecipe() {
   const rendimiento = parseInt(document.getElementById('rec-yield').value) || 1;
   if (!nombre) { alert('Ingresa un nombre para la receta.'); return; }
   if (recipeIngRows.length === 0) { alert('Agrega al menos un ingrediente.'); return; }
+  const sumCant = ['c1','c2','c3','c4','c5'].reduce((s,k) => s + (parseInt(document.getElementById('rec-'+k).value) || 0), 0);
+  if (sumCant !== rendimiento) {
+    showAlert(`⚠️ La suma de Cant_1 a Cant_5 (${sumCant}) debe ser igual al Rendimiento por lote (${rendimiento}).`);
+    return;
+  }
 
   const ids = recipeIngRows.filter(r => r.prodId).map(r => r.prodId);
   if (new Set(ids).size !== ids.length) {
@@ -2835,17 +2946,26 @@ async function saveRecipe() {
 
   let recetaId = editingRecipeId;
 
+  function getCfVals() {
+    const o = {};
+    ['c1','f1','c2','f2','c3','f3','c4','f4','c5','f5'].forEach(k => {
+      const v = document.getElementById('rec-' + k).value;
+      o[k] = v !== '' ? parseInt(v) : null;
+    });
+    return o;
+  }
+  const cf = getCfVals();
   if (editingRecipeId) {
     const { error: e1 } = await supa
       .from('recetas')
-      .update({ nombre, tipo, rendimiento, unidad_salida: 'unidad' })
+      .update({ nombre, tipo, rendimiento, unidad_salida: 'unidad', ...cf })
       .eq('id', editingRecipeId);
     if (e1) { alert('Error al actualizar receta: ' + e1.message); return; }
     await supa.from('receta_ingredientes').delete().eq('receta_id', editingRecipeId);
   } else {
     const { data: receta, error: e1 } = await supa
       .from('recetas')
-      .insert([{ nombre, tipo, rendimiento, unidad_salida: 'unidad' }])
+      .insert([{ nombre, tipo, rendimiento, unidad_salida: 'unidad', ...cf }])
       .select().single();
     if (e1) { alert('Error al guardar receta: ' + e1.message); return; }
     if (!receta) { alert('Error: no se pudo crear la receta.'); return; }
